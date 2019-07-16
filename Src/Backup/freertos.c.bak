@@ -1,0 +1,243 @@
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * File Name          : freertos.c
+  * Description        : Code for freertos applications
+  ******************************************************************************
+  * @attention
+  *
+  * <h2><center>&copy; Copyright (c) 2019 STMicroelectronics.
+  * All rights reserved.</center></h2>
+  *
+  * This software component is licensed by ST under Ultimate Liberty license
+  * SLA0044, the "License"; You may not use this file except in compliance with
+  * the License. You may obtain a copy of the License at:
+  *                             www.st.com/SLA0044
+  *
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+
+/* Includes ------------------------------------------------------------------*/
+#include "FreeRTOS.h"
+#include "task.h"
+#include "main.h"
+#include "cmsis_os.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */     
+#include "string.h"
+#include "stdio.h"
+#include "usart.h"
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+extern volatile uint8_t usart1_flag;
+extern volatile uint8_t usart2_flag;
+extern volatile uint8_t usart4_flag;
+extern volatile uint16_t usart1_rx_len; 
+extern volatile uint16_t usart2_rx_len;
+extern volatile uint16_t usart4_rx_len;
+extern uint8_t usart1_rx_buf[USART_MAX_DATA_LEN];
+extern uint8_t usart2_rx_buf[USART_MAX_DATA_LEN];
+extern uint8_t usart4_rx_buf[USART_MAX_DATA_LEN];
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+/* USER CODE BEGIN Variables */
+
+/* USER CODE END Variables */
+osThreadId DUTTaskHandle;
+osThreadId LightTaskHandle;
+osMessageQId DTUTaskQueueHandle;
+osTimerId myTimer01Handle;
+osTimerId myTimer02Handle;
+osTimerId myTimer03Handle;
+osMutexId myMutex01Handle;
+osSemaphoreId myBinarySem01Handle;
+
+/* Private function prototypes -----------------------------------------------*/
+/* USER CODE BEGIN FunctionPrototypes */
+   
+/* USER CODE END FunctionPrototypes */
+
+void StartDefaultTask(void const * argument);
+void StartTask02(void const * argument);
+void Callback01(void const * argument);
+void Callback02(void const * argument);
+void Callback03(void const * argument);
+
+void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
+
+/* Pre/Post sleep processing prototypes */
+void PreSleepProcessing(uint32_t *ulExpectedIdleTime);
+void PostSleepProcessing(uint32_t *ulExpectedIdleTime);
+
+/* USER CODE BEGIN PREPOSTSLEEP */
+__weak void PreSleepProcessing(uint32_t *ulExpectedIdleTime)
+{
+/* place for user code */ 
+}
+
+__weak void PostSleepProcessing(uint32_t *ulExpectedIdleTime)
+{
+/* place for user code */
+}
+/* USER CODE END PREPOSTSLEEP */
+
+/**
+  * @brief  FreeRTOS initialization
+  * @param  None
+  * @retval None
+  */
+void MX_FREERTOS_Init(void) {
+  /* USER CODE BEGIN Init */
+       
+  /* USER CODE END Init */
+
+  /* Create the mutex(es) */
+  /* definition and creation of myMutex01 */
+  osMutexDef(myMutex01);
+  myMutex01Handle = osMutexCreate(osMutex(myMutex01));
+
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* Create the semaphores(s) */
+  /* definition and creation of myBinarySem01 */
+  osSemaphoreDef(myBinarySem01);
+  myBinarySem01Handle = osSemaphoreCreate(osSemaphore(myBinarySem01), 1);
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* Create the timer(s) */
+  /* definition and creation of myTimer01 */
+  osTimerDef(myTimer01, Callback01);
+  myTimer01Handle = osTimerCreate(osTimer(myTimer01), osTimerPeriodic, NULL);
+
+  /* definition and creation of myTimer02 */
+  osTimerDef(myTimer02, Callback02);
+  myTimer02Handle = osTimerCreate(osTimer(myTimer02), osTimerOnce, NULL);
+
+  /* definition and creation of myTimer03 */
+  osTimerDef(myTimer03, Callback03);
+  myTimer03Handle = osTimerCreate(osTimer(myTimer03), osTimerPeriodic, NULL);
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* Create the queue(s) */
+  /* definition and creation of DTUTaskQueue */
+  osMessageQDef(DTUTaskQueue, 16, uint16_t);
+  DTUTaskQueueHandle = osMessageCreate(osMessageQ(DTUTaskQueue), NULL);
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* definition and creation of DUTTask */
+  osThreadDef(DUTTask, StartDefaultTask, osPriorityNormal, 0, 1024);
+  DUTTaskHandle = osThreadCreate(osThread(DUTTask), NULL);
+
+  /* definition and creation of LightTask */
+  osThreadDef(LightTask, StartTask02, osPriorityIdle, 0, 256);
+  LightTaskHandle = osThreadCreate(osThread(LightTask), NULL);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+}
+
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the DUTTask thread.
+  * @param  argument: Not used 
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
+void StartDefaultTask(void const * argument)
+{
+
+  /* USER CODE BEGIN StartDefaultTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+		printf("StartDefaultTask \r\n");
+		if (usart1_flag)
+		{
+				usart1_flag = 0;
+				printf("%s", usart1_rx_buf);
+				memset(usart1_rx_buf, 0, usart1_rx_len);
+				HAL_UART_Receive_DMA(&huart1, usart1_rx_buf, USART_MAX_DATA_LEN);
+		}
+  }
+  /* USER CODE END StartDefaultTask */
+}
+
+/* USER CODE BEGIN Header_StartTask02 */
+/**
+* @brief Function implementing the LightTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTask02 */
+void StartTask02(void const * argument)
+{
+  /* USER CODE BEGIN StartTask02 */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+		printf("StartTask02 \r\n");
+  }
+  /* USER CODE END StartTask02 */
+}
+
+/* Callback01 function */
+void Callback01(void const * argument)
+{
+  /* USER CODE BEGIN Callback01 */
+  
+  /* USER CODE END Callback01 */
+}
+
+/* Callback02 function */
+void Callback02(void const * argument)
+{
+  /* USER CODE BEGIN Callback02 */
+  
+  /* USER CODE END Callback02 */
+}
+
+/* Callback03 function */
+void Callback03(void const * argument)
+{
+  /* USER CODE BEGIN Callback03 */
+  
+  /* USER CODE END Callback03 */
+}
+
+/* Private application code --------------------------------------------------*/
+/* USER CODE BEGIN Application */
+     
+/* USER CODE END Application */
+
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
