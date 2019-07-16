@@ -130,7 +130,7 @@ void MX_FREERTOS_Init(void) {
   /* Create the timer(s) */
   /* definition and creation of myTimer01 */
   osTimerDef(myTimer01, Callback01);
-  myTimer01Handle = osTimerCreate(osTimer(myTimer01), osTimerOnce, NULL);
+  myTimer01Handle = osTimerCreate(osTimer(myTimer01), osTimerPeriodic, NULL);
 
   /* definition and creation of myTimer02 */
   osTimerDef(myTimer02, Callback02);
@@ -210,6 +210,7 @@ void StartDefaultTask(void const * argument)
 void StartTask02(void const * argument)
 {
   /* USER CODE BEGIN StartTask02 */
+	osTimerStart(myTimer01Handle, 1000);
   /* Infinite loop */
   for(;;)
   {
@@ -222,7 +223,7 @@ void StartTask02(void const * argument)
 void Callback01(void const * argument)
 {
   /* USER CODE BEGIN Callback01 */
-  
+  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_8);
   /* USER CODE END Callback01 */
 }
 
