@@ -73,6 +73,29 @@ void ConfigureContex(void)
 //		sprintf(g_Configure_Context, "AT+QICSGP=1,1,"UNINET","","",1", "%s");
 //		HAL_UART_Transmit(&huart2, g_Configure_Context, 5, 0xFF);
 }
+/*****************************the below code is for zhaojie board***************************************
+void Ec20PowerOn(void)
+{
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
+		osDelay(150);
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_RESET);
+}
+
+void Ec20PowerOff(void)
+{
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
+		osDelay(700);
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_RESET);
+}
+
+void Ec20Reset(void)
+{
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_SET);
+		osDelay(400);
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_RESET);
+}
+*******************************************************************************************************/
+
 void Ec20PowerOn(void)
 {
 		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
@@ -204,7 +227,7 @@ void CheckSIM(void)
 void CheckGSMInternet(void)
 {
 		printf("AT+CREG?\r\n");//查看是否注册GSM网络
-		osDelay(50);
+		osDelay(200);
 		if (usart2_flag)
 		{
 				usart2_flag = 0;
@@ -214,12 +237,12 @@ void CheckGSMInternet(void)
 				{
 						Clear_Buffer();
 						printf("AT+CREG?\r\n");//查看是否注册GSM网络
-						osDelay(50);
+						osDelay(200);
 						strx=strstr((const char*)usart2_rx_buf,(const char*)"+CREG: 0,1");//返回正常
 						extstrx=strstr((const char*)usart2_rx_buf,(const char*)"+CREG: 0,5");//返回正常，漫游
 						if ((strx == NULL)&&(extstrx == NULL))
 						{
-								osTimerStart(RebootEcTimeHandle,60000);
+								osTimerStart(RebootEcTimeHandle,90000);
 						}
 						else 
 						{
@@ -238,7 +261,7 @@ void CheckGSMInternet(void)
 void CheckGPRSInternet(void)
 {
 		printf("AT+CGREG?\r\n");//查看是否注册GPRS网络
-		osDelay(50);
+		osDelay(200);
 		if (usart2_flag)
 		{
 				usart2_flag = 0;
@@ -248,7 +271,7 @@ void CheckGPRSInternet(void)
 				{
 						Clear_Buffer();
 						printf("AT+CGREG?\r\n");//查看是否注册GPRS网络
-						osDelay(50);
+						osDelay(200);
 						strx=strstr((const char*)usart2_rx_buf,(const char*)"+CGREG: 0,1");//这里重要，只有注册成功，才可以进行GPRS数据传输
 						extstrx=strstr((const char*)usart2_rx_buf,(const char*)"+CGREG: 0,5");//返回正常，漫游
 						if ((strx == NULL)&&(extstrx == NULL))
@@ -271,8 +294,8 @@ void CheckGPRSInternet(void)
 
 void AccessAPN(void)
 {
-//		printf("AT+QICSGP=1,1,\042CMNET\042,\042\042,\042\042,0\r\n");//接入APN,无用户名和密码
-		printf("AT+QICSGP=1\r\n");//接入APN,无用户名和密码
+		printf("AT+QICSGP=1,1,\042CMNET\042,\042\042,\042\042,0\r\n");//接入APN,无用户名和密码
+		//printf("AT+QICSGP=1,1,UNINET,0,0,0\r\n");//接入APN,无用户名和密码
 		osDelay(50);
 		if (usart2_flag)
 		{
@@ -283,6 +306,7 @@ void AccessAPN(void)
 						Clear_Buffer();	
 						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 						printf("AT+QICSGP=1,1,\042CMNET\042,\042\042,\042\042,0\r\n");//接入APN,无用户名和密码
+						//printf("AT+QICSGP=1,1,UNINET,0,0,0\r\n");//接入APN,无用户名和密码
 						osDelay(50);
 						strx=strstr((const char*)usart2_rx_buf,(const char*)"OK");//开启成功
 						if (strx == NULL)
@@ -369,6 +393,80 @@ void ActivationSystem(void)
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 }
 
+void LinkFristTCPSocket(void)
+{
+		printf("AT+QIOPEN=1,0,\042TCP\042,\04172.18.2.139\042,16010,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
+		osDelay(50);
+		if (usart2_flag)
+		{
+				usart2_flag = 0;
+				strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
+				while(strx == NULL)
+				{
+						Clear_Buffer();	
+						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+						printf("AT+QIOPEN=1,0,\042TCP\042,\04172.18.2.139\042,16010,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
+						osDelay(50);
+						strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
+						if (strx == NULL)
+						{
+								osTimerStart(RebootEcTimeHandle,6000);
+						}
+						else 
+						{
+								osTimerStop(RebootEcTimeHandle);
+						}		  
+				}
+		}
+		else 
+		{
+				HAL_NVIC_SystemReset();
+		}
+		Clear_Buffer();	
+		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+}
+
+void LinkSecondTCPSocket(void)
+{
+		printf("AT+QIOPEN=1,0,\042TCP\042,\042103.46.128.49\042,28180,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
+		osDelay(50);
+		strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
+		while(strx==NULL)
+		{
+				strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
+				osDelay(10);
+		}
+		osDelay(50);
+		Clear_Buffer();
+}
+
+void LinkThirdTCPSocket(void)
+{
+		printf("AT+QIOPEN=1,0,\042TCP\042,\042103.46.128.49\042,28180,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
+		osDelay(50);
+		strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
+		while(strx==NULL)
+		{
+				strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
+				osDelay(10);
+		}
+		osDelay(50);
+		Clear_Buffer();
+}
+
+void LinkFourthTCPSocket(void)
+{
+		printf("AT+QIOPEN=1,0,\042TCP\042,\042103.46.128.49\042,28180,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
+		osDelay(50);
+		strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
+		while(strx==NULL)
+		{
+				strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
+				osDelay(10);
+		}
+		osDelay(50);
+		Clear_Buffer();
+}
 
 void  EC20_Init(void)
 {
@@ -383,8 +481,8 @@ void  EC20_Init(void)
 		osDelay(50);
 		Clear_Buffer();	
 		CheckSIM();
-		CheckGSMInternet();
-		CheckGPRSInternet();
+//		CheckGSMInternet();
+//		CheckGPRSInternet();
 		printf("AT+COPS?\r\n");//查看注册到哪个运营商，支持移动,联通，电信
 		osDelay(50);
 		Clear_Buffer();
@@ -392,8 +490,15 @@ void  EC20_Init(void)
     osDelay(50);
 		Clear_Buffer();
 		AccessAPN();
+		printf("AT+QICSGP=1\r\n");
+		osDelay(50);
+		Clear_Buffer();
 		DeactivationSystem();
 		ActivationSystem();
+}
+
+void TheFunctionIsUserForScoet()
+{
 		printf("AT+QIACT?\r\n");//获取当前卡的IP地址
 		osDelay(50);
 		Clear_Buffer();

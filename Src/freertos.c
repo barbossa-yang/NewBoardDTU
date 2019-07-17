@@ -188,14 +188,13 @@ void StartDefaultTask(void const * argument)
 	EC20_Init();
   for(;;)
   {
-//    osDelay(1); 
-//		printf("StartDefaultTask \r\n");
-		if (usart2_flag)
-		{
-				usart1_flag = 0;
-				memset(usart2_rx_buf, 0, usart2_rx_len);
-				HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-		}
+			printf("AT+QIACT?\r\n");//获取当前卡的IP地址
+			osDelay(500);
+			Clear_Buffer();	
+			printf("AT+CSQ\r\n"); //检查CSQ
+			osDelay(50);
+			Clear_Buffer();
+			LinkFristTCPSocket();
   }
   /* USER CODE END StartDefaultTask */
 }
