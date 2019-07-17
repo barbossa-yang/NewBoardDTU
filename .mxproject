@@ -1,7 +1,7 @@
 [PreviousGenFiles]
-HeaderPath=C:/Users/Administrator/Desktop/NewBoardFreeRTOS/Inc
+HeaderPath=G:/DTU/Inc
 HeaderFiles=gpio.h;dma.h;rtc.h;spi.h;usart.h;stm32f1xx_it.h;stm32f1xx_hal_conf.h;main.h;FreeRTOSConfig.h;
-SourcePath=C:/Users/Administrator/Desktop/NewBoardFreeRTOS/Src
+SourcePath=G:/DTU/Src
 SourceFiles=gpio.c;dma.c;rtc.c;spi.c;usart.c;stm32f1xx_it.c;stm32f1xx_hal_msp.c;main.c;freertos.c;stm32f1xx_hal_timebase_tim.c;
 
 [PreviousLibFiles]

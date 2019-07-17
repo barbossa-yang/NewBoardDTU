@@ -184,7 +184,7 @@ void StartDefaultTask(void const * argument)
   /* Infinite loop */
 	Ec20PowerOn();
 //	osTimerStart(LedBlinkHandle, 10000);
-	osDelay(10000);
+	osDelay(15000);
 	EC20_Init();
   for(;;)
   {
@@ -247,7 +247,8 @@ void Callback03(void const * argument)
 void RebootEc20(void const * argument)
 {
 		Ec20Reset();
-//		EC20_Init();
+		osDelay(15000);
+		EC20_Init();
 }
 /* USER CODE END Application */
 

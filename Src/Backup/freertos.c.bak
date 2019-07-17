@@ -29,6 +29,7 @@
 #include "string.h"
 #include "stdio.h"
 #include "usart.h"
+#include "ec20.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,6 +57,7 @@ extern uint8_t usart4_rx_buf[USART_MAX_DATA_LEN];
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
+osMutexId RebootEcTimeHandle;
 
 /* USER CODE END Variables */
 osThreadId DUTTaskHandle;
@@ -69,7 +71,8 @@ osSemaphoreId myBinarySem01Handle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-   
+void RebootEc20(void const * argument);
+
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void const * argument);
@@ -139,6 +142,8 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
+	osTimerDef(rebootec20, RebootEc20);
+	RebootEcTimeHandle = osTimerCreate(osTimer(rebootec20), osTimerOnce, NULL);
   /* USER CODE END RTOS_TIMERS */
 
   /* Create the queue(s) */
@@ -177,17 +182,19 @@ void StartDefaultTask(void const * argument)
 
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
+	Ec20PowerOn();
+//	osTimerStart(LedBlinkHandle, 10000);
+	osDelay(10000);
+	EC20_Init();
   for(;;)
   {
-    osDelay(1);
-		printf("StartDefaultTask \r\n");
-		if (usart1_flag)
-		{
-				usart1_flag = 0;
-				printf("%s", usart1_rx_buf);
-				memset(usart1_rx_buf, 0, usart1_rx_len);
-				HAL_UART_Receive_DMA(&huart1, usart1_rx_buf, USART_MAX_DATA_LEN);
-		}
+			printf("AT+QIACT?\r\n");//获取当前卡的IP地址
+			osDelay(500);
+			Clear_Buffer();	
+			printf("AT+CSQ\r\n"); //检查CSQ
+			osDelay(50);
+			Clear_Buffer();
+			LinkFristTCPSocket();
   }
   /* USER CODE END StartDefaultTask */
 }
@@ -202,11 +209,11 @@ void StartDefaultTask(void const * argument)
 void StartTask02(void const * argument)
 {
   /* USER CODE BEGIN StartTask02 */
+	osTimerStart(myTimer01Handle, 1000);
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
-		printf("StartTask02 \r\n");
+    osDelay(1000);
   }
   /* USER CODE END StartTask02 */
 }
@@ -215,7 +222,7 @@ void StartTask02(void const * argument)
 void Callback01(void const * argument)
 {
   /* USER CODE BEGIN Callback01 */
-  
+  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_8);
   /* USER CODE END Callback01 */
 }
 
@@ -237,7 +244,11 @@ void Callback03(void const * argument)
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
-     
+void RebootEc20(void const * argument)
+{
+		Ec20Reset();
+//		EC20_Init();
+}
 /* USER CODE END Application */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

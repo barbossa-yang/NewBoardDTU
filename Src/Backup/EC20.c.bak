@@ -98,25 +98,23 @@ void Ec20Reset(void)
 
 void Ec20PowerOn(void)
 {
-		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_3, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
 		osDelay(150);
-		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_3, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_RESET);
 }
 
 void Ec20PowerOff(void)
 {
-		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_3, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_SET);
 		osDelay(700);
-		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_3, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, GPIO_PIN_RESET);
 }
 
 void Ec20Reset(void)
 {
-		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
-		osDelay(5);
-		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_SET);
 		osDelay(400);
-		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_RESET);
 }
 
 void Clear_Buffer(void)//清空缓存
@@ -127,7 +125,6 @@ void Clear_Buffer(void)//清空缓存
 }
 void CheckWhetherReturnOK(void)
 {
-		uint8_t time_flag = 0;
 		printf("AT\r\n"); 
 		osDelay(50);
 		if (usart2_flag)
@@ -141,19 +138,14 @@ void CheckWhetherReturnOK(void)
 						printf("AT\r\n"); 
 						osDelay(50);
 						strx=strstr((const char*)usart2_rx_buf,(const char*)"OK");//返回OK
-						if ((strx == NULL)&&(time_flag == 0))
+						if (strx == NULL)
 						{
-								time_flag =1;
 								osTimerStart(RebootEcTimeHandle,60000);
 						}
-						else if ((strx != NULL)&&(time_flag == 1))
+						else 
 						{
 								osTimerStop(RebootEcTimeHandle);
 						}		  
-						else 
-						{
-								//do nothing
-						}	  
 				}
 		}
 		else 
@@ -166,7 +158,6 @@ void CheckWhetherReturnOK(void)
 
 void CheckSignalQuality(void)
 {
-		uint8_t time_flag = 0;
 		printf("AT+CSQ\r\n"); //检查CSQ
 		osDelay(50);
 		if (usart2_flag)
@@ -182,19 +173,14 @@ void CheckSignalQuality(void)
 						osDelay(50);
 						strx=strstr((const char*)usart2_rx_buf,(const char*)"99");//check signal quality 
 						extstrx=strstr((const char*)usart2_rx_buf,(const char*)"+CSQ: OK");//返回正常，漫游
-						if ((strx == NULL)&&(time_flag == 0))
+						if (~((strx == NULL)&&(extstrx != NULL)))
 						{
-								time_flag =1;
 								osTimerStart(RebootEcTimeHandle,60000);
 						}
-						else if ((strx != NULL)&&(time_flag == 1))
+						else 
 						{
 								osTimerStop(RebootEcTimeHandle);
 						}		  
-						else 
-						{
-								//do nothing
-						}  
 				}
 		}
 		else 
@@ -207,7 +193,6 @@ void CheckSignalQuality(void)
 
 void CheckSIM(void)
 {
-		uint8_t time_flag = 0;
 		printf("AT+CPIN?\r\n");//检查SIM卡是否在位
 		osDelay(50);
 		if (usart2_flag)
@@ -221,19 +206,14 @@ void CheckSIM(void)
 						printf("AT+CPIN?\r\n");
 						osDelay(50);
 						strx=strstr((const char*)usart2_rx_buf,(const char*)"+CPIN: READY");//检查SIM卡是否在位，等待卡在位，如果卡识别不到，剩余的工作就没法做了
-						if ((strx == NULL)&&(time_flag == 0))
+						if (strx == NULL)
 						{
-								time_flag =1;
 								osTimerStart(RebootEcTimeHandle,60000);
 						}
-						else if ((strx != NULL)&&(time_flag == 1))
+						else 
 						{
 								osTimerStop(RebootEcTimeHandle);
 						}		  
-						else 
-						{
-								//do nothing
-						} 
 				}
 		}
 		else 
@@ -246,7 +226,6 @@ void CheckSIM(void)
 
 void CheckGSMInternet(void)
 {
-		uint8_t time_flag = 0;
 		printf("AT+CREG?\r\n");//查看是否注册GSM网络
 		osDelay(200);
 		if (usart2_flag)
@@ -261,19 +240,14 @@ void CheckGSMInternet(void)
 						osDelay(200);
 						strx=strstr((const char*)usart2_rx_buf,(const char*)"+CREG: 0,1");//返回正常
 						extstrx=strstr((const char*)usart2_rx_buf,(const char*)"+CREG: 0,5");//返回正常，漫游
-						if ((strx == NULL)&&(time_flag == 0))
+						if ((strx == NULL)&&(extstrx == NULL))
 						{
-								time_flag =1;
-								osTimerStart(RebootEcTimeHandle,60000);
+								osTimerStart(RebootEcTimeHandle,90000);
 						}
-						else if ((strx != NULL)&&(time_flag == 1))
+						else 
 						{
 								osTimerStop(RebootEcTimeHandle);
 						}		  
-						else 
-						{
-								//do nothing
-						}	  
 				}
 		}
 		else 
@@ -286,7 +260,6 @@ void CheckGSMInternet(void)
 
 void CheckGPRSInternet(void)
 {
-		uint8_t time_flag = 0;
 		printf("AT+CGREG?\r\n");//查看是否注册GPRS网络
 		osDelay(200);
 		if (usart2_flag)
@@ -301,19 +274,14 @@ void CheckGPRSInternet(void)
 						osDelay(200);
 						strx=strstr((const char*)usart2_rx_buf,(const char*)"+CGREG: 0,1");//这里重要，只有注册成功，才可以进行GPRS数据传输
 						extstrx=strstr((const char*)usart2_rx_buf,(const char*)"+CGREG: 0,5");//返回正常，漫游
-						if ((strx == NULL)&&(time_flag == 0))
+						if ((strx == NULL)&&(extstrx == NULL))
 						{
-								time_flag =1;
-								osTimerStart(RebootEcTimeHandle,60000);
+								osTimerStart(RebootEcTimeHandle,20000);
 						}
-						else if ((strx != NULL)&&(time_flag == 1))
+						else 
 						{
 								osTimerStop(RebootEcTimeHandle);
 						}		  
-						else 
-						{
-								//do nothing
-						}	  
 				}
 		}
 		else 
@@ -326,7 +294,6 @@ void CheckGPRSInternet(void)
 
 void AccessAPN(void)
 {
-		uint8_t time_flag = 0;
 		printf("AT+QICSGP=1,1,\042CMNET\042,\042\042,\042\042,0\r\n");//接入APN,无用户名和密码
 		//printf("AT+QICSGP=1,1,UNINET,0,0,0\r\n");//接入APN,无用户名和密码
 		osDelay(50);
@@ -342,19 +309,14 @@ void AccessAPN(void)
 						//printf("AT+QICSGP=1,1,UNINET,0,0,0\r\n");//接入APN,无用户名和密码
 						osDelay(50);
 						strx=strstr((const char*)usart2_rx_buf,(const char*)"OK");//开启成功
-						if ((strx == NULL)&&(time_flag == 0))
+						if (strx == NULL)
 						{
-								time_flag =1;
 								osTimerStart(RebootEcTimeHandle,60000);
 						}
-						else if ((strx != NULL)&&(time_flag == 1))
+						else 
 						{
 								osTimerStop(RebootEcTimeHandle);
 						}		  
-						else 
-						{
-								//do nothing
-						}	  
 				}
 		}
 		else 
@@ -367,7 +329,6 @@ void AccessAPN(void)
 
 void DeactivationSystem(void)
 {
-		uint8_t time_flag = 0;
 		printf("AT+QIDEACT=1\r\n");//去激活
 		osDelay(50);
 		if (usart2_flag)
@@ -381,19 +342,14 @@ void DeactivationSystem(void)
 						printf("AT+QIDEACT=1\r\n");//去激活
 						osDelay(50);
 						strx=strstr((const char*)usart2_rx_buf,(const char*)"OK");//开启成功
-						if ((strx == NULL)&&(time_flag == 0))
+						if (strx == NULL)
 						{
-								time_flag =1;
 								osTimerStart(RebootEcTimeHandle,60000);
 						}
-						else if ((strx != NULL)&&(time_flag == 1))
+						else 
 						{
 								osTimerStop(RebootEcTimeHandle);
 						}		  
-						else 
-						{
-								//do nothing
-						}	  
 				}
 		}
 		else 
@@ -406,7 +362,6 @@ void DeactivationSystem(void)
 
 void ActivationSystem(void)
 {
-		uint8_t time_flag = 0;
 		printf("AT+QIACT=1\r\n");//激活
 		osDelay(50);
 		if (usart2_flag)
@@ -420,19 +375,14 @@ void ActivationSystem(void)
 						printf("AT+QIACT=1\r\n");//激活
 						osDelay(50);
 						strx=strstr((const char*)usart2_rx_buf,(const char*)"OK");//开启成功
-						if ((strx == NULL)&&(time_flag == 0))
+						if (strx == NULL)
 						{
-								time_flag =1;
 								osTimerStart(RebootEcTimeHandle,60000);
 						}
-						else if ((strx != NULL)&&(time_flag == 1))
+						else 
 						{
 								osTimerStop(RebootEcTimeHandle);
 						}		  
-						else 
-						{
-								//do nothing
-						}	  
 				}
 		}
 		else 
@@ -445,7 +395,6 @@ void ActivationSystem(void)
 
 void LinkFristTCPSocket(void)
 {
-		uint8_t time_flag = 0;
 		printf("AT+QIOPEN=1,0,\042TCP\042,\04172.18.2.139\042,16010,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
 		osDelay(50);
 		if (usart2_flag)
@@ -459,19 +408,14 @@ void LinkFristTCPSocket(void)
 						printf("AT+QIOPEN=1,0,\042TCP\042,\04172.18.2.139\042,16010,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
 						osDelay(50);
 						strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
-						if ((strx == NULL)&&(time_flag == 0))
+						if (strx == NULL)
 						{
-								time_flag =1;
-								osTimerStart(RebootEcTimeHandle,60000);
+								osTimerStart(RebootEcTimeHandle,6000);
 						}
-						else if ((strx != NULL)&&(time_flag == 1))
+						else 
 						{
 								osTimerStop(RebootEcTimeHandle);
 						}		  
-						else 
-						{
-								//do nothing
-						}
 				}
 		}
 		else 
@@ -484,119 +428,44 @@ void LinkFristTCPSocket(void)
 
 void LinkSecondTCPSocket(void)
 {
-		uint8_t time_flag = 0;
-		printf("AT+QIOPEN=1,0,\042TCP\042,\04172.18.2.139\042,16010,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
+		printf("AT+QIOPEN=1,0,\042TCP\042,\042103.46.128.49\042,28180,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
 		osDelay(50);
-		if (usart2_flag)
+		strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
+		while(strx==NULL)
 		{
-				usart2_flag = 0;
 				strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
-				while(strx == NULL)
-				{
-						Clear_Buffer();	
-						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-						printf("AT+QIOPEN=1,0,\042TCP\042,\04172.18.2.139\042,16010,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
-						osDelay(50);
-						strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
-						if ((strx == NULL)&&(time_flag == 0))
-						{
-								time_flag =1;
-								osTimerStart(RebootEcTimeHandle,60000);
-						}
-						else if ((strx != NULL)&&(time_flag == 1))
-						{
-								osTimerStop(RebootEcTimeHandle);
-						}		  
-						else 
-						{
-								//do nothing
-						}
-				}
+				osDelay(10);
 		}
-		else 
-		{
-				HAL_NVIC_SystemReset();
-		}
-		Clear_Buffer();	
-		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+		osDelay(50);
+		Clear_Buffer();
 }
 
 void LinkThirdTCPSocket(void)
 {
-		uint8_t time_flag = 0;
-		printf("AT+QIOPEN=1,0,\042TCP\042,\04172.18.2.139\042,16010,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
+		printf("AT+QIOPEN=1,0,\042TCP\042,\042103.46.128.49\042,28180,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
 		osDelay(50);
-		if (usart2_flag)
+		strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
+		while(strx==NULL)
 		{
-				usart2_flag = 0;
 				strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
-				while(strx == NULL)
-				{
-						Clear_Buffer();	
-						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-						printf("AT+QIOPEN=1,0,\042TCP\042,\04172.18.2.139\042,16010,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
-						osDelay(50);
-						strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
-						if ((strx == NULL)&&(time_flag == 0))
-						{
-								time_flag =1;
-								osTimerStart(RebootEcTimeHandle,60000);
-						}
-						else if ((strx != NULL)&&(time_flag == 1))
-						{
-								osTimerStop(RebootEcTimeHandle);
-						}		  
-						else 
-						{
-								//do nothing
-						}
-				}
+				osDelay(10);
 		}
-		else 
-		{
-				HAL_NVIC_SystemReset();
-		}
-		Clear_Buffer();	
-		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+		osDelay(50);
+		Clear_Buffer();
 }
 
 void LinkFourthTCPSocket(void)
 {
-		uint8_t time_flag = 0;
-		printf("AT+QIOPEN=1,0,\042TCP\042,\04172.18.2.139\042,16010,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
+		printf("AT+QIOPEN=1,0,\042TCP\042,\042103.46.128.49\042,28180,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
 		osDelay(50);
-		if (usart2_flag)
+		strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
+		while(strx==NULL)
 		{
-				usart2_flag = 0;
 				strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
-				while(strx == NULL)
-				{
-						Clear_Buffer();	
-						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-						printf("AT+QIOPEN=1,0,\042TCP\042,\04172.18.2.139\042,16010,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
-						osDelay(50);
-						strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
-						if ((strx == NULL)&&(time_flag == 0))
-						{
-								time_flag =1;
-								osTimerStart(RebootEcTimeHandle,60000);
-						}
-						else if ((strx != NULL)&&(time_flag == 1))
-						{
-								osTimerStop(RebootEcTimeHandle);
-						}		  
-						else 
-						{
-								//do nothing
-						}
-				}
+				osDelay(10);
 		}
-		else 
-		{
-				HAL_NVIC_SystemReset();
-		}
-		Clear_Buffer();	
-		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+		osDelay(50);
+		Clear_Buffer();
 }
 
 void  EC20_Init(void)

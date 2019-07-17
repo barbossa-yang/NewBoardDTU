@@ -1,5 +1,6 @@
 --cpu Cortex-M3
 "newboard_4gdtu\startup_stm32f103xe.o"
+"newboard_4gdtu\ec20.o"
 "newboard_4gdtu\main.o"
 "newboard_4gdtu\gpio.o"
 "newboard_4gdtu\dma.o"
@@ -10,7 +11,6 @@
 "newboard_4gdtu\stm32f1xx_it.o"
 "newboard_4gdtu\stm32f1xx_hal_msp.o"
 "newboard_4gdtu\stm32f1xx_hal_timebase_tim.o"
-"newboard_4gdtu\ec20.o"
 "newboard_4gdtu\stm32f1xx_hal_gpio_ex.o"
 "newboard_4gdtu\stm32f1xx_hal_rtc.o"
 "newboard_4gdtu\stm32f1xx_hal_rtc_ex.o"
