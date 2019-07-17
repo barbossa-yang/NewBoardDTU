@@ -628,35 +628,6 @@ void  EC20_Init(void)
 		ActivationSystem();
 }
 
-void TheFunctionIsUserForScoet()
-{
-		printf("AT+QIACT?\r\n");//获取当前卡的IP地址
-		osDelay(50);
-		Clear_Buffer();
-		//建立第一组socket
-		printf("AT+QIOPEN=1,0,\042TCP\042,\042103.46.128.49\042,28180,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
-		osDelay(50);
-		strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
-		while(strx==NULL)
-		{
-				strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
-				osDelay(10);
-		}
-		osDelay(50);
-		Clear_Buffer();
-    //建立第二组socket
-		printf("AT+QIOPEN=1,1,\042TCP\042,\042114.115.148.172\042,10000,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
-		osDelay(50);
-		strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 1,0");//检查是否登录成功
-		while(strx==NULL)
-		{
-				strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 1,0");//检查是否登录成功
-				osDelay(10);
-		}
-		osDelay(50);
-		Clear_Buffer();
-}		
-
 //发送字符型数据
 void EC20Send_StrData(char *bufferdata)
 {
