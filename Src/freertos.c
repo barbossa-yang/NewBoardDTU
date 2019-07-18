@@ -182,8 +182,8 @@ void StartDefaultTask(void const * argument)
 
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
+	char buf[5] = {'a','b','c','d','e'};
 	Ec20PowerOn();
-//	osTimerStart(LedBlinkHandle, 10000);
 	osDelay(15000);
 	EC20_Init();
   for(;;)
@@ -194,7 +194,11 @@ void StartDefaultTask(void const * argument)
 			printf("AT+CSQ\r\n"); //ºÏ≤ÈCSQ
 			osDelay(50);
 			Clear_Buffer();
-			LinkFristTCPSocket();
+			LinkFirstTCPSocket();
+			printf("AT+QISTATE?\r\n");
+			osDelay(50);
+			Clear_Buffer();
+		  EC20Send_StrData(buf);
   }
   /* USER CODE END StartDefaultTask */
 }

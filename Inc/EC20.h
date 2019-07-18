@@ -16,7 +16,7 @@ void Ec20PowerOn(void);
 void Ec20PowerOff(void);
 void Ec20Reset(void);
 void Clear_Buffer(void);
-void LinkFristTCPSocket(void);
+void LinkFirstTCPSocket(void);
 void LinkSecondTCPSocket(void);
 void LinkThirdTCPSocket(void);
 void LinkFourthTCPSocket(void);
