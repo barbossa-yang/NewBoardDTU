@@ -552,24 +552,38 @@ void LinkFirstTCPSocket(void)
 
 void LinkSecondTCPSocket(void)
 {
-		uint8_t time_flag = 0;
-		printf("AT+QIOPEN=1,0,\042TCP\042,\04172.18.2.139\042,16010,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
+			uint8_t time_flag = 0;
+		printf("AT+QIOPEN=1,1,\042TCP\042,\04239.106.226.214\042,11002,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
 		osDelay(50);
 		if (usart2_flag)
 		{
 				usart2_flag = 0;
-				strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
+				strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 1,0");//检查是否登录成功
+				osDelay(50);
 				while(strx == NULL)
 				{
 						Clear_Buffer();	
 						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-						printf("AT+QIOPEN=1,0,\042TCP\042,\04172.18.2.139\042,16010,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
+						printf("AT+QICLOSE=1\r\n");//关闭socket连接
+						while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
+						{
+							 osDelay(5);
+						}
+						Clear_Buffer();	
+						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+						printf("AT+QIOPEN=1,1,\042TCP\042,\04239.106.226.214\042,11002,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
 						osDelay(50);
-						strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
+						strx=strstr((const char*)usart2_rx_buf,(const char*)"OK");//检查是否登录成功
+						if (strx != NULL)
+						{
+								HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+								osDelay(300);
+								strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 1,0");//检查是否登录成功
+						}
 						if ((strx == NULL)&&(time_flag == 0))
 						{
 								time_flag =1;
-								osTimerStart(RebootEcTimeHandle,60000);
+								osTimerStart(RebootEcTimeHandle,150000);
 						}
 						else if ((strx != NULL)&&(time_flag == 1))
 						{
@@ -592,23 +606,37 @@ void LinkSecondTCPSocket(void)
 void LinkThirdTCPSocket(void)
 {
 		uint8_t time_flag = 0;
-		printf("AT+QIOPEN=1,0,\042TCP\042,\04172.18.2.139\042,16010,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
+		printf("AT+QIOPEN=1,2,\042TCP\042,\04239.106.226.214\042,11003,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
 		osDelay(50);
 		if (usart2_flag)
 		{
 				usart2_flag = 0;
-				strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
+				strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 2,0");//检查是否登录成功
+				osDelay(50);
 				while(strx == NULL)
 				{
 						Clear_Buffer();	
 						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-						printf("AT+QIOPEN=1,0,\042TCP\042,\04172.18.2.139\042,16010,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
+						printf("AT+QICLOSE=2\r\n");//关闭socket连接
+						while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
+						{
+							 osDelay(5);
+						}
+						Clear_Buffer();	
+						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+						printf("AT+QIOPEN=1,2,\042TCP\042,\04239.106.226.214\042,11003,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
 						osDelay(50);
-						strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
+						strx=strstr((const char*)usart2_rx_buf,(const char*)"OK");//检查是否登录成功
+						if (strx != NULL)
+						{
+								HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+								osDelay(300);
+								strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 2,0");//检查是否登录成功
+						}
 						if ((strx == NULL)&&(time_flag == 0))
 						{
 								time_flag =1;
-								osTimerStart(RebootEcTimeHandle,60000);
+								osTimerStart(RebootEcTimeHandle,150000);
 						}
 						else if ((strx != NULL)&&(time_flag == 1))
 						{
@@ -630,24 +658,38 @@ void LinkThirdTCPSocket(void)
 
 void LinkFourthTCPSocket(void)
 {
-		uint8_t time_flag = 0;
-		printf("AT+QIOPEN=1,0,\042TCP\042,\04172.18.2.139\042,16010,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
+				uint8_t time_flag = 0;
+		printf("AT+QIOPEN=1,3,\042TCP\042,\04239.106.226.214\042,11004,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
 		osDelay(50);
 		if (usart2_flag)
 		{
 				usart2_flag = 0;
-				strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
+				strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 3,0");//检查是否登录成功
+				osDelay(50);
 				while(strx == NULL)
 				{
 						Clear_Buffer();	
 						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-						printf("AT+QIOPEN=1,0,\042TCP\042,\04172.18.2.139\042,16010,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
+						printf("AT+QICLOSE=3\r\n");//关闭socket连接
+						while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
+						{
+							 osDelay(5);
+						}
+						Clear_Buffer();	
+						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+						printf("AT+QIOPEN=1,3,\042TCP\042,\04239.106.226.214\042,11004,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
 						osDelay(50);
-						strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
+						strx=strstr((const char*)usart2_rx_buf,(const char*)"OK");//检查是否登录成功
+						if (strx != NULL)
+						{
+								HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+								osDelay(300);
+								strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 3,0");//检查是否登录成功
+						}
 						if ((strx == NULL)&&(time_flag == 0))
 						{
 								time_flag =1;
-								osTimerStart(RebootEcTimeHandle,60000);
+								osTimerStart(RebootEcTimeHandle,150000);
 						}
 						else if ((strx != NULL)&&(time_flag == 1))
 						{

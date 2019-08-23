@@ -182,11 +182,15 @@ void StartDefaultTask(void const * argument)
 
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
-	char buf[5] = {'a','b','c','d','e'};
+//	char buf[5] = {'a','b','c','d','e'};
 	Ec20PowerOn();
 	osDelay(15000);
 	EC20_Init();
 	LinkFirstTCPSocket();
+	LinkSecondTCPSocket();
+	LinkThirdTCPSocket();
+	LinkFourthTCPSocket();
+	
   for(;;)
   {
 //			printf("AT+QIACT?\r\n");//获取当前卡的IP地址
