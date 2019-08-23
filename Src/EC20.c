@@ -443,22 +443,79 @@ void ActivationSystem(void)
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 }
 
+void ConfirmSendData(void)
+{
+		g_fix_data[0] = 0x01A;
+	
+    HAL_UART_Transmit(&huart2, g_fix_data, 1, 0XFF);//发送完成函数
+    while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+    {
+    }
+		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+}
+
+void SendDateDone(char *bufferdata)
+{
+		uint8_t time_flag = 0;
+
+		printf(bufferdata);
+		ConfirmSendData();
+		osDelay(5);
+		if (usart2_flag)
+		{
+				usart2_flag = 0;
+				strx=strstr((const char*)usart2_rx_buf,(const char*)"SEND OK");//开启成功
+				while(strx == NULL)
+				{
+						Clear_Buffer();	
+						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+						printf(bufferdata);
+						ConfirmSendData();
+						osDelay(5);
+						strx=strstr((const char*)usart2_rx_buf,(const char*)"SEND OK");//开启成功
+						if ((strx == NULL)&&(time_flag == 0))
+						{
+								time_flag =1;
+								osTimerStart(RebootEcTimeHandle,60000);
+						}
+						else if ((strx != NULL)&&(time_flag == 1))
+						{
+								osTimerStop(RebootEcTimeHandle);
+						}		  
+						else 
+						{
+								//do nothing
+						}	  
+				}
+		}
+		else 
+		{
+				HAL_NVIC_SystemReset();
+		}
+		Clear_Buffer();	
+		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+}
+
+
 void LinkFirstTCPSocket(void)
 {
 		uint8_t time_flag = 0;
 		printf("AT+QIOPEN=1,0,\042TCP\042,\04239.106.226.214\042,11001,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
-		osDelay(500);
+		osDelay(50);
 		if (usart2_flag)
 		{
 				usart2_flag = 0;
 				strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
+				osDelay(50);
 				while(strx == NULL)
-//				while(1)
 				{
 						Clear_Buffer();	
 						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 						printf("AT+QICLOSE=0\r\n");//关闭socket连接
-						osDelay(1000);
+						while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
+						{
+							 osDelay(5);
+						}
 						Clear_Buffer();	
 						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 						printf("AT+QIOPEN=1,0,\042TCP\042,\04239.106.226.214\042,11001,0,1\r\n");//这里是需要登录的IP号码，采用直接吐出模式
@@ -470,27 +527,19 @@ void LinkFirstTCPSocket(void)
 								osDelay(300);
 								strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
 						}
-						
-//						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-//						osDelay(500);
-//						strx=strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");//检查是否登录成功
-//						if(strx == NULL)
-//						{
-//								osDelay(1000);
-//						}
-//						if ((strx == NULL)&&(time_flag == 0))
-//						{
-//								time_flag =1;
-//								osTimerStart(RebootEcTimeHandle,150000);
-//						}
-//						else if ((strx != NULL)&&(time_flag == 1))
-//						{
-//								osTimerStop(RebootEcTimeHandle);
-//						}		  
-//						else 
-//						{
-//								//do nothing
-//						}
+						if ((strx == NULL)&&(time_flag == 0))
+						{
+								time_flag =1;
+								osTimerStart(RebootEcTimeHandle,150000);
+						}
+						else if ((strx != NULL)&&(time_flag == 1))
+						{
+								osTimerStop(RebootEcTimeHandle);
+						}		  
+						else 
+						{
+								//do nothing
+						}
 				}
 		}
 		else 
@@ -651,37 +700,24 @@ void  EC20_Init(void)
 void EC20Send_StrData(char *bufferdata)
 {
 		uint8_t untildata = 0xff;
-		g_fix_data[0] = 0x1a;
+	
 		printf("AT+QISEND=0\r\n");
-		osDelay(100);
-		printf(bufferdata);
-    osDelay(100);	
-    HAL_UART_Transmit(&huart2, g_fix_data, 1, 0XFF);//发送完成函数
-    while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
-    {
-    }
-    osDelay(200);
-		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-    strx=strstr((char*)usart2_rx_buf,(char*)"SEND OK");//是否正确发送
-    while(strx==NULL)
-    {
-				HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-        strx=strstr((char*)usart2_rx_buf,(char*)"SEND OK");//是否正确发送
-        osDelay(10);
-    }
-    osDelay(100);
+		osDelay(10);
+		SendDateDone(bufferdata);
     Clear_Buffer();
     printf("AT+QISEND=0,0\r\n");
-    osDelay(200);
+    osDelay(5);
     strx=strstr((char*)usart2_rx_buf,(char*)"+QISEND:");//发送剩余字节数据
     while(untildata)
     {
 				printf("AT+QISEND=0,0\r\n");
-				osDelay(200);
+				osDelay(20);
 				strx=strstr((char*)usart2_rx_buf,(char*)"+QISEND:");//发送剩余字节数据
 				strx=strstr((char*)strx,(char*)",");//获取第一个
 				strx=strstr((char*)(strx+1),(char*)",");//获取第二个
 				untildata=*(strx+1)-0x30;
+				Clear_Buffer();
+				HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
     }
     Clear_Buffer();
 }

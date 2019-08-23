@@ -18,7 +18,9 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
+#include "string.h"
 #include "usart.h"
+#include "stm32f1xx_hal_uart.h"
 
 /* USER CODE BEGIN 0 */
 volatile uint16_t usart1_rx_len; 
@@ -59,6 +61,7 @@ void MX_UART4_Init(void)
     Error_Handler();
   }
 	__HAL_UART_ENABLE_IT(&huart4, UART_IT_IDLE);
+	HAL_UART_Receive_DMA(&huart4, usart4_rx_buf, USART_MAX_DATA_LEN);
 }
 /* USART1 init function */
 
@@ -78,6 +81,7 @@ void MX_USART1_UART_Init(void)
     Error_Handler();
   }
 	__HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);
+	HAL_UART_Receive_DMA(&huart1, usart1_rx_buf, USART_MAX_DATA_LEN);
 }
 /* USART2 init function */
 
@@ -97,6 +101,7 @@ void MX_USART2_UART_Init(void)
     Error_Handler();
   }
 	__HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
+	HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 }
 
 void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
@@ -378,6 +383,13 @@ int fputc(int ch, FILE *f)
 {
 		HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, 0xFFFF);	
 		return (ch);
+}
+
+void ClearUart1Buffer(void)
+{                              
+//		HAL_UART_Transmit(&huart2, usart2_rx_buf, usart2_rx_len, 0xFF);
+		memset(usart1_rx_buf, 0, USART_MAX_DATA_LEN);
+		usart1_rx_len=0;
 }
 /* USER CODE END 1 */
 

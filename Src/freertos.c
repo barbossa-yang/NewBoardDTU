@@ -72,7 +72,7 @@ osSemaphoreId myBinarySem01Handle;
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 void RebootEc20(void const * argument);
-
+   
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void const * argument);
@@ -186,19 +186,26 @@ void StartDefaultTask(void const * argument)
 	Ec20PowerOn();
 	osDelay(15000);
 	EC20_Init();
+	LinkFirstTCPSocket();
   for(;;)
   {
-			printf("AT+QIACT?\r\n");//获取当前卡的IP地址
-			osDelay(500);
-			Clear_Buffer();	
-			printf("AT+CSQ\r\n"); //检查CSQ
-			osDelay(50);
-			Clear_Buffer();
-			LinkFirstTCPSocket();
-			printf("AT+QISTATE?\r\n");
-			osDelay(50);
-			Clear_Buffer();
-		  EC20Send_StrData(buf);
+//			printf("AT+QIACT?\r\n");//获取当前卡的IP地址
+//			osDelay(20);
+//			Clear_Buffer();	
+//			printf("AT+CSQ\r\n"); //检查CSQ
+//			osDelay(50);
+//			Clear_Buffer();
+//			LinkFirstTCPSocket();
+//			printf("AT+QISTATE?\r\n");
+//			osDelay(50);
+//			Clear_Buffer();
+		if(usart1_flag == 1)
+		{
+				usart1_flag = 0;
+				EC20Send_StrData((char *)usart1_rx_buf);
+				ClearUart1Buffer();
+				HAL_UART_Receive_DMA(&huart1, usart1_rx_buf, USART_MAX_DATA_LEN);
+		}
   }
   /* USER CODE END StartDefaultTask */
 }
