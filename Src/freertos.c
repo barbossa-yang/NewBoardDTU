@@ -264,6 +264,10 @@ void RebootEc20(void const * argument)
 		Ec20Reset();
 		osDelay(15000);
 		EC20_Init();
+		LinkFirstTCPSocket();
+		LinkSecondTCPSocket();
+		LinkThirdTCPSocket();
+		LinkFourthTCPSocket();
 }
 /* USER CODE END Application */
 
