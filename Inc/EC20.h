@@ -12,6 +12,11 @@
 #include "usart.h"
 #include "gpio.h"
 
+#define FIRST_CHANNEL        0
+#define SECOND_CHANNEL       1
+#define THIRD_CHANNEL        2
+#define FOURTH_CHANNEL       3
+
 void Ec20PowerOn(void);
 void Ec20PowerOff(void);
 void Ec20Reset(void);

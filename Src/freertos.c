@@ -206,7 +206,10 @@ void StartDefaultTask(void const * argument)
 		if(usart1_flag == 1)
 		{
 				usart1_flag = 0;
-				EC20Send_StrData((char *)usart1_rx_buf);
+				EC20Send_MultiStrData(FIRST_CHANNEL, (char *)usart1_rx_buf);
+				EC20Send_MultiStrData(SECOND_CHANNEL, (char *)usart1_rx_buf);
+				EC20Send_MultiStrData(THIRD_CHANNEL, (char *)usart1_rx_buf);
+				EC20Send_MultiStrData(FOURTH_CHANNEL, (char *)usart1_rx_buf);
 				ClearUart1Buffer();
 				HAL_UART_Receive_DMA(&huart1, usart1_rx_buf, USART_MAX_DATA_LEN);
 		}

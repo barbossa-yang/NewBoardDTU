@@ -456,45 +456,64 @@ void ConfirmSendData(void)
 
 void SendDateDone(char *bufferdata)
 {
-		uint8_t time_flag = 0;
-
+		uint16_t time = 0;
 		printf(bufferdata);
 		ConfirmSendData();
-		osDelay(5);
-		if (usart2_flag)
+		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"SEND OK"))
 		{
-				usart2_flag = 0;
-				strx=strstr((const char*)usart2_rx_buf,(const char*)"SEND OK");//开启成功
-				while(strx == NULL)
-				{
-						Clear_Buffer();	
-						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-						printf(bufferdata);
-						ConfirmSendData();
-						osDelay(5);
-						strx=strstr((const char*)usart2_rx_buf,(const char*)"SEND OK");//开启成功
-						if ((strx == NULL)&&(time_flag == 0))
-						{
-								time_flag =1;
-								osTimerStart(RebootEcTimeHandle,60000);
-						}
-						else if ((strx != NULL)&&(time_flag == 1))
-						{
-								osTimerStop(RebootEcTimeHandle);
-						}		  
-						else 
-						{
-								//do nothing
-						}	  
-				}
-		}
-		else 
-		{
-				HAL_NVIC_SystemReset();
+			osDelay(5);
+			time++;
+			if (time >= 30000)
+			{
+					osTimerStart(RebootEcTimeHandle,10000);
+			}
 		}
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 }
+
+//void SendDateDone(char *bufferdata)
+//{
+//		uint8_t time_flag = 0;
+
+//		printf(bufferdata);
+//		ConfirmSendData();
+//		osDelay(5);
+//		if (usart2_flag)
+//		{
+//				usart2_flag = 0;
+//				strx=strstr((const char*)usart2_rx_buf,(const char*)"SEND OK");//开启成功
+//				while(strx == NULL)
+//				{
+//						Clear_Buffer();	
+//						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+//						printf(bufferdata);
+//						ConfirmSendData();
+//						osDelay(5);
+//						strx=strstr((const char*)usart2_rx_buf,(const char*)"SEND OK");//开启成功
+//						if ((strx == NULL)&&(time_flag == 0))
+//						{
+//								time_flag =1;
+//								osTimerStart(RebootEcTimeHandle,60000);
+//						}
+//						else if ((strx != NULL)&&(time_flag == 1))
+//						{
+//								osTimerStop(RebootEcTimeHandle);
+//						}		  
+//						else 
+//						{
+//								//do nothing
+//						}	  
+//				}
+//		}
+//		else 
+//		{
+//				HAL_NVIC_SystemReset();
+//		}
+//		Clear_Buffer();	
+//		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+//}
 
 
 void LinkFirstTCPSocket(void)
@@ -823,13 +842,15 @@ void  EC20_Init(void)
 		ActivationSystem();
 }
 
-//发送字符型数据
 void EC20Send_StrData(char *bufferdata)
 {
 		uint8_t untildata = 0xff;
 	
 		printf("AT+QISEND=0\r\n");
-		osDelay(10);
+		while(!strstr((char*)usart2_rx_buf,(char*)">"))
+		{
+			osDelay(5);
+		}
 		SendDateDone(bufferdata);
     Clear_Buffer();
     printf("AT+QISEND=0,0\r\n");
@@ -846,44 +867,32 @@ void EC20Send_StrData(char *bufferdata)
 				Clear_Buffer();
 				HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
     }
-    Clear_Buffer();
 }
 
-//发送多路字符型数据
 void EC20Send_MultiStrData(uint8_t channel ,char *bufferdata)
 {
-    uint8_t untildata=0xff;
-		g_fix_data[0] = 0x1a;
-    printf("AT+QISEND=%c\r\n",channel);
-    osDelay(100);
-    printf(bufferdata);
-    osDelay(100);	
-    HAL_UART_Transmit(&huart2, g_fix_data, 1, 0XFF);//发送完成函数
-    while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
-    {
-    }
-		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-    osDelay(100);
-    strx=strstr((char*)usart2_rx_buf,(char*)"SEND OK");//是否正确发送
-    while(strx==NULL)
-    {
-        strx=strstr((char*)usart2_rx_buf,(char*)"SEND OK");//是否正确发送
-        osDelay(10);
-    }
-    osDelay(100);
+		uint8_t untildata = 0xff;
+	
+		printf("AT+QISEND=%d\r\n",channel);
+		while(!strstr((char*)usart2_rx_buf,(char*)">"))
+		{
+			osDelay(5);
+		}
+		SendDateDone(bufferdata);
     Clear_Buffer();
-    printf("AT+QISEND=%c,0\r\n",channel);
-    osDelay(200);
+    printf("AT+QISEND=%d,0\r\n", channel);
+    osDelay(5);
     strx=strstr((char*)usart2_rx_buf,(char*)"+QISEND:");//发送剩余字节数据
     while(untildata)
     {
-        printf("AT+QISEND=%c,0\r\n",channel);
-        osDelay(200);
-        strx=strstr((char*)usart2_rx_buf,(char*)"+QISEND:");//发送剩余字节数据
-        strx=strstr((char*)strx,(char*)",");//获取第一个
-        strx=strstr((char*)(strx+1),(char*)",");//获取第二个
-        untildata=*(strx+1)-0x30;
-        Clear_Buffer();
+				printf("AT+QISEND=%d,0\r\n", channel);
+				osDelay(20);
+				strx=strstr((char*)usart2_rx_buf,(char*)"+QISEND:");//发送剩余字节数据
+				strx=strstr((char*)strx,(char*)",");//获取第一个
+				strx=strstr((char*)(strx+1),(char*)",");//获取第二个
+				untildata=*(strx+1)-0x30;
+				Clear_Buffer();
+				HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
     }
 }
 
