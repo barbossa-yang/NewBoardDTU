@@ -32,5 +32,9 @@ void EC20Send_HexData(char *bufferdata);
 void EC20Send_RecAccessMode(void);
 //void EC20Send_ChangeMode(u8 data);
 void EC20Send_MultiStrData(uint8_t channel ,char *bufferdata);
+void StartUdpService(void);
+void SendUdpDate(void);
+void ReceiveUdpDate(void);
+void CloseUdpService(void);
 
 #endif

@@ -190,7 +190,8 @@ void StartDefaultTask(void const * argument)
 	LinkSecondTCPSocket();
 	LinkThirdTCPSocket();
 	LinkFourthTCPSocket();
-	
+	StartUdpService();
+	SendUdpDate();
   for(;;)
   {
 //			printf("AT+QIACT?\r\n");//获取当前卡的IP地址
