@@ -22,45 +22,9 @@ extern volatile uint16_t usart2_rx_len;
 extern volatile uint16_t usart1_rx_len; 
 extern volatile uint8_t usart2_flag;
 extern osMutexId RebootEcTimeHandle;
-
+extern DMA_HandleTypeDef hdma_usart2_rx;
+extern osMutexId myMutex01Handle;
 uint8_t g_fix_data[1];
-
-/**************************对应at指令中的4.1章节*******************************/
-char g_Configure_Context[40];
-char g_Activate_Context[20];
-char g_Deactivate_Context[20];
-/**************************对应at指令中的4.2章节*******************************/
-char g_TcpClientConnAccessMode[50];
-char g_SendDataInAccessMode[20];
-char g_RecDataInAccessMode[50];
-char g_CloseConnAccessMode[20];
-/**************************对应at指令中的4.3章节*******************************/
-char g_TCPClientConnTransMode[20];
-uint8_t g_SentDataInTransMode[20];
-uint8_t g_RecDataInTransMode[20];
-char g_CloseTcpClientTransMode[20];
-/**************************对应at指令中的4.4章节*******************************/
-char g_SetClientConnInPushMode[20];
-char g_SendDataInPushMode[20];
-char g_RecDataInPushMode[20];
-char g_CloseTcpClientPushMode[20];
-/**************************对应at指令中的4.5章节*******************************/
-char g_StartTcpServer[50];
-char g_AcceptTcpIncomConn[20];
-char g_RecDataFromIncomConnect[50];
-char g_CloseTcpServ[20];
-/**************************对应at指令中的4.6章节*******************************/
-char g_StartUdpServ[50];
-char g_SendUdpDataToRemote[20];
-char g_RecDataFromRemote[50];
-char g_CloseUdpServ[20];
-/**************************对应at指令中的4.7章节*******************************/
-char g_Ping[30];
-/**************************对应at指令中的4.8章节*******************************/
-char g_SynchronizeLocalTime[30];
-/**************************对应at指令中的4.9章节*******************************/
-char g_GetLastErrorCode[30];
-
 
 
 void TransATcodeToBuf(void)
@@ -126,126 +90,175 @@ void Clear_Buffer(void)//清空缓存
 		memset(usart2_rx_buf, 0, USART_MAX_DATA_LEN);
 		usart2_rx_len=0;
 }
+
+void CheckWhetherRdy(void)
+{	uint16_t time = 0;
+	while(!strstr((const char*)usart2_rx_buf,(const char*)"RDY"))
+	{
+			osDelay(5);
+			time++;
+			if (time >= 30000)
+			{
+					osTimerStart(RebootEcTimeHandle,10000);
+			}
+	}
+	Clear_Buffer();	
+	HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+	printf("CheckWhetherRdy is ok \r\n");
+}	
+	
 void CheckWhetherReturnOK(void)
 {
-		uint8_t time_flag = 0;
+		uint16_t time = 0;
 		char str[] = {"AT\r\n"};
 		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
-		osDelay(50);
-		if (usart2_flag)
+		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+    {
+    }
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"AT"))
 		{
-				usart2_flag = 0;
-				strx = strstr((const char*)usart2_rx_buf,(const char*)"RDY");//返回OK
-				while(strx == NULL)
-				{
-						Clear_Buffer();	
-						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-						HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
-						osDelay(50);
-						strx=strstr((const char*)usart2_rx_buf,(const char*)"OK");//返回OK
-						if ((strx == NULL)&&(time_flag == 0))
-						{
-								time_flag =1;
-								osTimerStart(RebootEcTimeHandle,60000);
-						}
-						else if ((strx != NULL)&&(time_flag == 1))
-						{
-								osTimerStop(RebootEcTimeHandle);
-						}		  
-						else 
-						{
-								//do nothing
-						}	  
-				}
-		}
-		else 
-		{
-				HAL_NVIC_SystemReset();
+			osDelay(5);
+			time++;
+			if (time >= 30000)
+			{
+					osTimerStart(RebootEcTimeHandle,10000);
+			}
 		}
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+		printf("CheckWhetherReturnOK is ok \r\n");
+}
+
+void CloseEchoDisplay(void)
+{
+		uint8_t time = 0;
+		char str[] = {"ATE0\r\n"};
+		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
+		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+    {
+    }
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"ATE0"))
+		{
+			osDelay(5);
+			time++;
+			if (time >= 60)
+			{
+					osTimerStart(RebootEcTimeHandle,10000);
+			}
+		}
+		Clear_Buffer();	
+		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+		printf("CloseEchoDisplay is ok \r\n");
 }
 
 void CheckSignalQuality(void)
 {
-		uint8_t time_flag = 0;
+		uint8_t time = 0;
 		char str[] = {"AT+CSQ\r\n"};
 		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
-		osDelay(50);
-		if (usart2_flag)
+		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+    {
+    }
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 		{
-				usart2_flag = 0;
-				strx = strstr((const char*)usart2_rx_buf,(const char*)"99");//查看是否返回ready
-				extstrx=strstr((const char*)usart2_rx_buf,(const char*)"+CSQ: OK");//返回正常，漫游
-				while(~((strx == NULL)&&(extstrx != NULL)))
-				{
-						Clear_Buffer();	
-						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-						HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
-						osDelay(50);
-						strx=strstr((const char*)usart2_rx_buf,(const char*)"99");//check signal quality 
-						extstrx=strstr((const char*)usart2_rx_buf,(const char*)"+CSQ: OK");//返回正常，漫游
-						if ((strx == NULL)&&(time_flag == 0))
-						{
-								time_flag =1;
-								osTimerStart(RebootEcTimeHandle,60000);
-						}
-						else if ((strx != NULL)&&(time_flag == 1))
-						{
-								osTimerStop(RebootEcTimeHandle);
-						}		  
-						else 
-						{
-								//do nothing
-						}  
-				}
-		}
-		else 
-		{
-				HAL_NVIC_SystemReset();
+			osDelay(5);
+			time++;
+			if (time >= 60)
+			{
+					osTimerStart(RebootEcTimeHandle,10000);
+			}
 		}
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+		printf("CheckSignalQuality is ok \r\n");
+}
+
+void DisplayProductIdInformation(void)
+{
+		uint8_t time = 0;
+		char str[] = {"ATI\r\n"};
+		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
+		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+    {
+    }
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
+		{
+			osDelay(5);
+			time++;
+			if (time >= 60)
+			{
+					osTimerStart(RebootEcTimeHandle,10000);
+			}
+		}
+		Clear_Buffer();	
+		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+		printf("DisplayProductIdInformation is ok \r\n");
 }
 
 void CheckSIM(void)
 {
-		uint8_t time_flag = 0;
+		uint16_t time = 0;
 		char str[] = {"AT+CPIN?\r\n"};
 		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
-		osDelay(50);
-		if (usart2_flag)
+		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+    {
+    }
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"+CPIN: READY"))
 		{
-				usart2_flag = 0;
-				strx = strstr((const char*)usart2_rx_buf,(const char*)"+CPIN: READY");//查看是否返回ready
-				while(strx == NULL)
-				{
-						Clear_Buffer();	
-						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-						HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
-						osDelay(50);
-						strx=strstr((const char*)usart2_rx_buf,(const char*)"+CPIN: READY");//检查SIM卡是否在位，等待卡在位，如果卡识别不到，剩余的工作就没法做了
-						if ((strx == NULL)&&(time_flag == 0))
-						{
-								time_flag =1;
-								osTimerStart(RebootEcTimeHandle,60000);
-						}
-						else if ((strx != NULL)&&(time_flag == 1))
-						{
-								osTimerStop(RebootEcTimeHandle);
-						}		  
-						else 
-						{
-								//do nothing
-						} 
-				}
-		}
-		else 
-		{
-				HAL_NVIC_SystemReset();
+			osDelay(5);
+			time++;
+			if (time >= 30000)
+			{
+					osTimerStart(RebootEcTimeHandle,10000);
+			}
 		}
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+		printf("CheckSIM is ok \r\n");
+}
+
+void NetworkOperatorSelect(void)
+{
+		uint16_t time = 0;
+		char str[] = {"AT+COPS?\r\n"};
+		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
+		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+    {
+    }
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
+		{
+			osDelay(5);
+			time++;
+			if (time >= 30000)
+			{
+					osTimerStart(RebootEcTimeHandle,10000);
+			}
+		}
+		Clear_Buffer();	
+		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+		printf("NetworkOperatorSelect is ok \r\n");
+}
+
+void CloseSocketService(void)
+{
+		uint16_t time = 0;
+				char str[] = {"AT+QICLOSE=0\r\n"};
+		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
+		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+    {
+    }
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
+		{
+			osDelay(5);
+			time++;
+			if (time >= 20000)
+			{
+					osTimerStart(RebootEcTimeHandle,10000);
+			}
+		}
+		Clear_Buffer();	
+		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+		printf("CloseSocketService is ok \r\n");
 }
 
 void CheckGSMInternet(void)
@@ -332,124 +345,110 @@ void CheckGPRSInternet(void)
 
 void AccessAPN(void)
 {
-		uint8_t time_flag = 0;
+		uint16_t time = 0;
 		char str[] = {"AT+QICSGP=1,1,\042CMNET\042,\042\042,\042\042,0\r\n"};
 		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
-		//printf("AT+QICSGP=1,1,UNINET,0,0,0\r\n");//接入APN,无用户名和密码
-		osDelay(50);
-		if (usart2_flag)
+		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+    {
+    }
+		//printf("AT+QICSGP=1,1,UNINET,0,0,0\r\n");//?óè?APN,?Tó??§??oí?ü??
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 		{
-				usart2_flag = 0;
-				strx=strstr((const char*)usart2_rx_buf,(const char*)"OK");//开启成功
-				while(strx == NULL)
-				{
-						Clear_Buffer();	
-						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-						HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
-						//printf("AT+QICSGP=1,1,UNINET,0,0,0\r\n");//接入APN,无用户名和密码
-						osDelay(50);
-						strx=strstr((const char*)usart2_rx_buf,(const char*)"OK");//开启成功
-						if ((strx == NULL)&&(time_flag == 0))
-						{
-								time_flag =1;
-								osTimerStart(RebootEcTimeHandle,60000);
-						}
-						else if ((strx != NULL)&&(time_flag == 1))
-						{
-								osTimerStop(RebootEcTimeHandle);
-						}		  
-						else 
-						{
-								//do nothing
-						}	  
-				}
-		}
-		else 
-		{
-				HAL_NVIC_SystemReset();
+			osDelay(5);
+			if (time >= 30000)
+			{
+					osTimerStart(RebootEcTimeHandle,10000);
+			}
 		}
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+		printf("AccessAPN is ok \r\n");
 }
+
+void QueryConfigContex(void)
+{
+		uint16_t time = 0;
+		char str[] = {"AT+QICSGP=1\r\n"};
+		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
+		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+    {
+    }
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
+		{
+			osDelay(5);
+			time++;
+			if (time >= 20000)
+			{
+					osTimerStart(RebootEcTimeHandle,10000);
+			}
+		}
+		Clear_Buffer();	
+		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+		printf("QueryConfigContex is ok \r\n");
+}
+
 
 void DeactivationSystem(void)
 {
-		uint8_t time_flag = 0;
+		uint16_t time = 0;
 		char str[] = {"AT+QIDEACT=1\r\n"};
 		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
-		osDelay(50);
-		if (usart2_flag)
+		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+    {
+    }
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 		{
-				usart2_flag = 0;
-				strx=strstr((const char*)usart2_rx_buf,(const char*)"OK");//开启成功
-				while(strx == NULL)
-				{
-						Clear_Buffer();	
-						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-						HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
-						osDelay(50);
-						strx=strstr((const char*)usart2_rx_buf,(const char*)"OK");//开启成功
-						if ((strx == NULL)&&(time_flag == 0))
-						{
-								time_flag =1;
-								osTimerStart(RebootEcTimeHandle,60000);
-						}
-						else if ((strx != NULL)&&(time_flag == 1))
-						{
-								osTimerStop(RebootEcTimeHandle);
-						}		  
-						else 
-						{
-								//do nothing
-						}	  
-				}
-		}
-		else 
-		{
-				HAL_NVIC_SystemReset();
+			osDelay(5);
+			if (time >= 30000)
+			{
+					osTimerStart(RebootEcTimeHandle,10000);
+			}
 		}
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+		printf("DeactivationSystem is ok \r\n");
 }
 
 void ActivationSystem(void)
 {
-		uint8_t time_flag = 0;
+		uint16_t time = 0;
 		char str[] = {"AT+QIACT=1\r\n"};
 		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
-		osDelay(50);
-		if (usart2_flag)
+		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+    {
+    }
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 		{
-				usart2_flag = 0;
-				strx=strstr((const char*)usart2_rx_buf,(const char*)"OK");//开启成功
-				while(strx == NULL)
-				{
-						Clear_Buffer();	
-						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-						HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
-						osDelay(50);
-						strx=strstr((const char*)usart2_rx_buf,(const char*)"OK");//开启成功
-						if ((strx == NULL)&&(time_flag == 0))
-						{
-								time_flag =1;
-								osTimerStart(RebootEcTimeHandle,60000);
-						}
-						else if ((strx != NULL)&&(time_flag == 1))
-						{
-								osTimerStop(RebootEcTimeHandle);
-						}		  
-						else 
-						{
-								//do nothing
-						}	  
-				}
-		}
-		else 
-		{
-				HAL_NVIC_SystemReset();
+			osDelay(5);
+			if (time >= 30000)
+			{
+					osTimerStart(RebootEcTimeHandle,10000);
+			}
 		}
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+		printf("ActivationSystem is ok \r\n");
+}
+
+void QureyLastErrorCode(void)
+{
+		uint16_t time = 0;
+		char str[] = {"AT+QIGETERROR\r\n"};
+		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
+		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+    {
+    }
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"+QIGETERROR:"))
+		{
+			osDelay(5);
+			if (time >= 30000)
+			{
+					osTimerStart(RebootEcTimeHandle,10000);
+			}
+		}
+		Clear_Buffer();	
+		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+		printf("QureyLastErrorCode is ok \r\n");
 }
 
 void ConfirmSendData(void)
@@ -783,36 +782,18 @@ void LinkFourthTCPSocket(void)
 
 void  EC20_Init(void)
 {
-	char str0[] = {"ATE0\r\n"};
-	char str1[] = {"AT+CSQ\r\n"};
-	char str2[] = {"ATI\r\n"};
-	char str3[] = {"AT+COPS?\r\n"};
-	char str4[] = {"AT+QICLOSE=0\r\n"};
-	char str5[] = {"AT+QICSGP=1\r\n"};
-	
+		CheckWhetherRdy();
 		CheckWhetherReturnOK();
-		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str0, strlen(str0));
-		osDelay(50);
-		Clear_Buffer();	
-		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
-		osDelay(50);
-		Clear_Buffer();
-		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str2, strlen(str2));
-		osDelay(50);
-		Clear_Buffer();	
+		CloseEchoDisplay();
+		CheckSignalQuality();
+		DisplayProductIdInformation();
 		CheckSIM();
 //		CheckGSMInternet();
 //		CheckGPRSInternet();
-		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str3, strlen(str3));
-		osDelay(50);
-		Clear_Buffer();
-		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str4, strlen(str4));
-    osDelay(50);
-		Clear_Buffer();
+		NetworkOperatorSelect();
+		CloseSocketService();
 		AccessAPN();
-		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str5, strlen(str5));
-		osDelay(50);
-		Clear_Buffer();
+		QueryConfigContex();
 		DeactivationSystem();
 		ActivationSystem();
 }
@@ -823,22 +804,29 @@ void EC20Send_StrData(char *bufferdata)
 		char str0[] = {"AT+QISEND=0\r\n"};
 		char str1[] = {"AT+QISEND=0,0\r\n"};
 		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str0, strlen(str0));
+		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+    {
+    }
 		while(!strstr((char*)usart2_rx_buf,(char*)">"))
 		{
 			osDelay(5);
 		}
 		SendDateDone(bufferdata);
     Clear_Buffer();
-	HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
-    osDelay(5);
-    strx=strstr((char*)usart2_rx_buf,(char*)"+QISEND:");//发送剩余字节数据
+		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
+    while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+    {
+    }
+    strx=strstr((char*)usart2_rx_buf,(char*)"+QISEND:");//·￠?íê￡óà×??úêy?Y
     while(untildata)
     {
 				HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
-				osDelay(20);
-				strx=strstr((char*)usart2_rx_buf,(char*)"+QISEND:");//发送剩余字节数据
-				strx=strstr((char*)strx,(char*)",");//获取第一个
-				strx=strstr((char*)(strx+1),(char*)",");//获取第二个
+				while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+				{
+				}
+				strx=strstr((char*)usart2_rx_buf,(char*)"+QISEND:");//·￠?íê￡óà×??úêy?Y
+				strx=strstr((char*)strx,(char*)",");//??è?μúò???
+				strx=strstr((char*)(strx+1),(char*)",");//??è?μú?t??
 				untildata=*(strx+1)-0x30;
 				Clear_Buffer();
 				HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
@@ -851,22 +839,29 @@ void EC20Send_MultiStrData(uint8_t channel ,char *bufferdata)
 		char str0[] = {"AT+QISEND=channel\r\n"};
 		char str1[] = {"AT+QISEND=channel,0\r\n"};
 		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str0, strlen(str0));
+		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+    {
+    }
 		while(!strstr((char*)usart2_rx_buf,(char*)">"))
 		{
 			osDelay(5);
 		}
 		SendDateDone(bufferdata);
     Clear_Buffer();
-   HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
-    osDelay(5);
-    strx=strstr((char*)usart2_rx_buf,(char*)"+QISEND:");//发送剩余字节数据
+    HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
+		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+    {
+    }
+    strx=strstr((char*)usart2_rx_buf,(char*)"+QISEND:");//·￠?íê￡óà×??úêy?Y
     while(untildata)
     {
 				HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
-				osDelay(20);
-				strx=strstr((char*)usart2_rx_buf,(char*)"+QISEND:");//发送剩余字节数据
-				strx=strstr((char*)strx,(char*)",");//获取第一个
-				strx=strstr((char*)(strx+1),(char*)",");//获取第二个
+				while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+				{
+				}
+				strx=strstr((char*)usart2_rx_buf,(char*)"+QISEND:");//·￠?íê￡óà×??úêy?Y
+				strx=strstr((char*)strx,(char*)",");//??è?μúò???
+				strx=strstr((char*)(strx+1),(char*)",");//??è?μú?t??
 				untildata=*(strx+1)-0x30;
 				Clear_Buffer();
 				HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
@@ -967,6 +962,13 @@ void StartUdpService(void)
 		char str0[] = {"AT+QIOPEN=1,4,\042UDP SERVICE\042,\042127.0.0.1\042,11005,0,1\r\n"};
 		char str1[] = {"AT+QICLOSE=4\r\n"};
 		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str0, strlen(str0));
+		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+    {
+    }
+		osDelay(500);
+		Clear_Buffer();	
+		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+		QureyLastErrorCode();
 		while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 		{
 			osDelay(5);
@@ -1023,6 +1025,9 @@ void SendUdpDate(void)
 	char str0[] = {"AT+QISEND=4,5,\04239.106.226.214\042,11005\r\n"};
 	char str1[] = {"AT+QISEND=4,0\r\n"};
 	HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str0, strlen(str0));
+	while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+	{
+	}
 	while(!strstr((char*)usart2_rx_buf,(char*)">"))
 	{
 		osDelay(5);
@@ -1077,6 +1082,9 @@ void ReceiveUdpDate(void)
 {
 	char str[] = {"AT+QIRD=4\r\n"};
 	HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
+	while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+	{
+	}
 	while(!strstr((char*)usart2_rx_buf,(char*)"+QIRD"))
 	{
 		osDelay(5);
@@ -1089,6 +1097,9 @@ void CloseUdpService(void)
 {
 	char str[] = {"AT+CLOSE=4"};
 	HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
+	while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+	{
+	}
 	while(!strstr((char*)usart2_rx_buf,(char*)"OK"))
 	{
 		osDelay(5);
