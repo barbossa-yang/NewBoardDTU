@@ -16,6 +16,8 @@
 #include "cmsis_os.h"
 #include "usart.h"
 
+#define PRINTF_ALL_DTU_INFO           1
+
 char *strx,*extstrx,*Readystrx;
 uint16_t g_time = 0;
 extern uint8_t usart2_rx_buf[USART_MAX_DATA_LEN];
@@ -26,7 +28,11 @@ extern osMutexId RebootEcTimeHandle;
 extern DMA_HandleTypeDef hdma_usart2_rx;
 extern osMutexId myMutex01Handle;
 uint8_t g_fix_data[1];
-
+uint8_t g_first_cnt = 0;
+uint8_t g_second_cnt = 0;
+uint8_t g_third_cnt = 0;
+uint8_t g_fourth_cnt = 0;
+uint8_t g_udp_cnt = 0;
 
 void TransATcodeToBuf(void)
 {
@@ -95,15 +101,16 @@ void Clear_Buffer(void)//Çå¿Õ»º´æ
 void CheckWhetherRdy(void)
 {
   g_time = 0;
-	extstrx = strstr((const char*)usart2_rx_buf,(const char*)"RDY");
-	while(extstrx == NULL)
+	while(!strstr((const char*)usart2_rx_buf,(const char*)"RDY"))
 	{
 			osDelay(10);
 			g_time++;
-			extstrx = strstr((const char*)usart2_rx_buf,(const char*)"RDY");
-			if (g_time >= 30000)
+			if (g_time >= 10000)
 			{
+					g_time = 0;
 					osTimerStart(RebootEcTimeHandle,10000);
+					printf("CheckWhetherRdy osTimerStart\r\n");
+					break;
 			}
 	}
 	printf("CheckWhetherRdy is: %s\r\n", extstrx);
@@ -119,18 +126,26 @@ void CheckWhetherReturnOK(void)
 		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
     {
     }
-		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"AT");
-		while(extstrx == NULL)
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"AT"))
 		{
 			osDelay(10);
 			g_time++;
-			extstrx = strstr((const char*)usart2_rx_buf,(const char*)"AT");
+			if(g_time%500 == 0)
+			{
+					CheckWhetherReturnOK();
+			}
 			if (g_time >= 30000)
 			{
+					g_time = 0;
 					osTimerStart(RebootEcTimeHandle,10000);
+					printf("CheckWhetherReturnOK osTimerStart\r\n");
+					break;
 			}
 		}
+#ifdef PRINTF_ALL_DTU_INFO
+		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"AT");
 		printf("CheckWhetherReturnOK is: %s\r\n", extstrx);
+#endif		
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 }
@@ -143,18 +158,22 @@ void CloseEchoDisplay(void)
 		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
     {
     }
-		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"ATE0");
-		while(extstrx == NULL)
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"ATE0"))
 		{
 			osDelay(10);
 			g_time++;
-			extstrx = strstr((const char*)usart2_rx_buf,(const char*)"ATE0");
 			if (g_time >= 60)
 			{
+					g_time = 0;
 					osTimerStart(RebootEcTimeHandle,10000);
+					printf("CloseEchoDisplay osTimerStart\r\n");
+					break;
 			}
 		}
+#ifdef PRINTF_ALL_DTU_INFO		
+		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"ATE0");
 		printf("CloseEchoDisplay is: %s\r\n", extstrx);
+#endif		
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 }
@@ -167,18 +186,22 @@ void CheckSignalQuality(void)
 		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
     {
     }
-		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-		while(extstrx == NULL)
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 		{
 			osDelay(10);
 			g_time++;
-			extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
 			if (g_time >= 60)
 			{
+					g_time = 0;
 					osTimerStart(RebootEcTimeHandle,10000);
+					printf("CheckSignalQuality osTimerStart\r\n");
+					break;
 			}
 		}
+#ifdef PRINTF_ALL_DTU_INFO	
+		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+");
 		printf("CheckSignalQuality is: %s\r\n", extstrx);
+#endif
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 }
@@ -191,18 +214,22 @@ void DisplayProductIdInformation(void)
 		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
     {
     }
-		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-		while(extstrx == NULL)
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 		{
 			osDelay(10);
 			g_time++;
-			extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
 			if (g_time >= 60)
 			{
+					g_time = 0;
 					osTimerStart(RebootEcTimeHandle,10000);
+					printf("DisplayProductIdInformation osTimerStart\r\n");
+					break;
 			}
 		}
+#ifdef PRINTF_ALL_DTU_INFO	
+		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"Quecte");	
 		printf("DisplayProductIdInformation is: %s\r\n", extstrx);
+#endif
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 }
@@ -215,18 +242,22 @@ void CheckSIM(void)
 		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
     {
     }
-		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+CPIN: READY");
-		while(extstrx == NULL)
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"+CPIN: READY"))
 		{
 			osDelay(10);
 			g_time++;
-			extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+CPIN: READY");
 			if (g_time >= 30000)
 			{
+					g_time = 0;
 					osTimerStart(RebootEcTimeHandle,10000);
+					printf("CheckSIM osTimerStart\r\n");
+					break;
 			}
 		}
+#ifdef PRINTF_ALL_DTU_INFO
+		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+");
 		printf("CheckSIM is: %s\r\n", extstrx);
+#endif
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 }
@@ -239,18 +270,22 @@ void NetworkOperatorSelect(void)
 		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
     {
     }
-		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-		while(extstrx == NULL)
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 		{
 			osDelay(10);
 			g_time++;
-			extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
 			if (g_time >= 30000)
 			{
+					g_time = 0;
 					osTimerStart(RebootEcTimeHandle,10000);
+					printf("NetworkOperatorSelect osTimerStart\r\n");
+					break;
 			}
 		}
+#ifdef PRINTF_ALL_DTU_INFO
+		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+");
 		printf("NetworkOperatorSelect is: %s\r\n", extstrx);
+#endif
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 }
@@ -263,18 +298,23 @@ void CloseSocketService(void)
 		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
     {
     }
-		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-		while(extstrx == NULL)
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 		{
 			osDelay(10);
 			g_time++;
-			extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
+			
 			if (g_time >= 20000)
 			{
+					g_time = 0;
 					osTimerStart(RebootEcTimeHandle,10000);
+					printf("CloseSocketService osTimerStart\r\n");
+					break;
 			}
 		}
+#ifdef PRINTF_ALL_DTU_INFO
+		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
 		printf("CloseSocketService is: %s\r\n", extstrx);
+#endif
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 }
@@ -369,18 +409,22 @@ void AccessAPN(void)
 		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
     {
     }
-		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-		while(extstrx == NULL)
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 		{
 			g_time++;
 			osDelay(10);
-			extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
 			if (g_time >= 30000)
 			{
+					g_time = 0;
 					osTimerStart(RebootEcTimeHandle,10000);
+					printf("AccessAPN osTimerStart\r\n");
+					break;
 			}
 		}
+#ifdef PRINTF_ALL_DTU_INFO
+		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
 		printf("AccessAPN is: %s\r\n", extstrx);
+#endif
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 }
@@ -393,18 +437,22 @@ void QueryConfigContex(void)
 		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
     {
     }
-		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-		while(extstrx == NULL)
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 		{
 			osDelay(10);
 			g_time++;
-			extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
 			if (g_time >= 20000)
 			{
+					g_time = 0;
 					osTimerStart(RebootEcTimeHandle,10000);
+					printf("QueryConfigContex osTimerStart\r\n");
+					break;
 			}
 		}
+#ifdef PRINTF_ALL_DTU_INFO
+		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+");
 		printf("QueryConfigContex is: %s\r\n", extstrx);
+#endif
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 }
@@ -418,18 +466,23 @@ void DeactivationSystem(void)
 		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
     {
     }
-		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-		while(extstrx == NULL)
+
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 		{
 			g_time++;
 			osDelay(10);
-			extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
 			if (g_time >= 30000)
 			{
+					g_time = 0;
 					osTimerStart(RebootEcTimeHandle,10000);
+					printf("DeactivationSystem osTimerStart\r\n");
+					break;
 			}
 		}
+#ifdef PRINTF_ALL_DTU_INFO
+		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
 		printf("DeactivationSystem is: %s\r\n", extstrx);
+#endif
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 }
@@ -442,18 +495,22 @@ void ActivationSystem(void)
 		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
     {
     }
-		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-		while(extstrx == NULL)
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 		{
 			g_time++;
 			osDelay(10);
-			extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
 			if (g_time >= 30000)
 			{
+					g_time = 0;
 					osTimerStart(RebootEcTimeHandle,10000);
+					printf("ActivationSystem osTimerStart\r\n");
+					break;
 			}
 		}
+#ifdef PRINTF_ALL_DTU_INFO
+		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
 		printf("ActivationSystem is: %s\r\n", extstrx);
+#endif
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 }
@@ -466,18 +523,22 @@ void QureyLastErrorCode(void)
 		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
     {
     }
-		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+QIGETERROR:");
-		while(extstrx == NULL)
+		while(!strstr((const char*)usart2_rx_buf,(const char*)"+QIGETERROR:"))
 		{
 			g_time++;
 			osDelay(10);
-			extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+QIGETERROR:");
 			if (g_time >= 30000)
 			{
+					g_time = 0;
 					osTimerStart(RebootEcTimeHandle,10000);
+					printf("QureyLastErrorCode osTimerStart\r\n");
+					break;
 			}
 		}
+#ifdef PRINTF_ALL_DTU_INFO		
+		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+");
 		printf("QureyLastErrorCode is: %s\r\n", extstrx);
+#endif
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 }
@@ -505,7 +566,10 @@ void SendDateDone(char *bufferdata)
 			g_time++;
 			if (g_time >= 30000)
 			{
+					g_time = 0;
 					osTimerStart(RebootEcTimeHandle,10000);
+					printf("SendDateDone osTimerStart\r\n");
+					break;
 			}
 		}
 		Clear_Buffer();	
@@ -560,58 +624,96 @@ void LinkFirstTCPSocket(void)
 		char str[] = {"AT+QIOPEN=1,0,\042TCP\042,\04239.106.226.214\042,11001,0,1\r\n"};
 		char str1[] = {"AT+QICLOSE=0\r\n"};
 		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
-		osDelay(50);
+		while(usart2_flag == 0)
+		{
+			osDelay(2);
+		}
 		if (usart2_flag)
 		{
 				usart2_flag = 0;
+				HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+#ifdef PRINTF_ALL_DTU_INFO
 				extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-				while(extstrx == NULL)
+				printf("LinkFirstTCPSocket is: %s\r\n", extstrx);
+#endif
+				while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 				{
 					osDelay(5);
 					g_time++;
-					extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-					if (g_time >= 30000)
+					if(g_time%1000 == 0)
+					{
+						g_first_cnt++;
+						Clear_Buffer();	
+						HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
+						while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+						{
+						}
+						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+						while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
+						{
+							osDelay(5);
+						}
+						LinkFirstTCPSocket();
+					}
+					if (g_first_cnt >= 20)
 					{
 						Clear_Buffer();	
 						HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
 						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 						g_time = 0;
-						extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-						while(extstrx == NULL)
+						g_first_cnt = 0;
+						while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 						{
 							osDelay(5);
 							g_time++;
-							extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
 							if (g_time >= 2000)
 							{
+								g_time = 0;
 								osTimerStart(RebootEcTimeHandle,10000);
+								printf("LinkFirstTCPSocket osTimerStart\r\n");
+								break;
 							}
 						}
 					}
 				}
 				HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 				g_time = 0;
-				extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");
-				while(extstrx == NULL)
+				while(!strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0"))
 				{
 						osDelay(5);
 						g_time++;
-						extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 0,0");
-						if (g_time >= 30000)
+						if(g_time%1000 == 0)
+						{
+								g_first_cnt++;
+								Clear_Buffer();	
+								HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
+								while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+								{
+								}
+								HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+								while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
+								{
+									osDelay(5);
+								}
+								LinkFirstTCPSocket();
+						}
+						if (g_first_cnt >= 20)
 						{
 							Clear_Buffer();	
 							HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
 							HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 							g_time = 0;
-							extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-							while(extstrx == NULL)
+							g_first_cnt =0;
+							while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 							{
 								osDelay(5);
 								g_time++;
-								extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
 								if (g_time >= 2000)
 								{
+									g_time = 0;
 									osTimerStart(RebootEcTimeHandle,10000);
+									printf("LinkFirstTCPSocket osTimerStart\r\n");
+									break;
 								}
 							}
 						}
@@ -621,10 +723,15 @@ void LinkFirstTCPSocket(void)
 		{
 				HAL_NVIC_SystemReset();
 		}
-		printf("LinkFirstTCPSocket is: %s\r\n", extstrx);
+#ifdef PRINTF_ALL_DTU_INFO
+				extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+");
+				printf("LinkFirstTCPSocket is: %s\r\n", extstrx);
+#endif
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 }
+
+
 
 void LinkSecondTCPSocket(void)
 {
@@ -632,58 +739,96 @@ void LinkSecondTCPSocket(void)
 		char str[] = {"AT+QIOPEN=1,1,\042TCP\042,\04239.106.226.214\042,11002,0,1\r\n"};
 		char str1[] = {"AT+QICLOSE=1\r\n"};
 		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
-		osDelay(50);
+		while(usart2_flag == 0)
+		{
+			osDelay(2);
+		}
 		if (usart2_flag)
 		{
 				usart2_flag = 0;
+			  HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+#ifdef PRINTF_ALL_DTU_INFO
 				extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-				while(extstrx == NULL)
+				printf("LinkSecondTCPSocket is: %s\r\n", extstrx);
+#endif
+				while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 				{
 					osDelay(5);
 					g_time++;
-					extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-					if (g_time >= 30000)
+					if(g_time%1000 == 0)
+					{
+						g_second_cnt++;
+						Clear_Buffer();	
+						HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
+						while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+						{
+						}
+						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+						while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
+						{
+							osDelay(5);
+						}
+						LinkSecondTCPSocket();
+					}
+					if (g_second_cnt >= 20)
 					{
 						Clear_Buffer();	
 						HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
 						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 						g_time = 0;
-						extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-						while(extstrx == NULL)
+						g_second_cnt = 0;
+						while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 						{
 							osDelay(5);
 							g_time++;
-							extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
 							if (g_time >= 2000)
 							{
+								g_time = 0;
 								osTimerStart(RebootEcTimeHandle,10000);
+								printf("LinkSecondTCPSocket osTimerStart\r\n");
+								break;
 							}
 						}
 					}
 				}
 				HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 				g_time = 0;
-				extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 1,0");
-				while(extstrx == NULL)
+				while(!strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 1,0"))
 				{
 						osDelay(5);
 						g_time++;
-						extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 1,0");
-						if (g_time >= 30000)
+						if(g_time%1000 == 0)
+						{
+								g_second_cnt++;
+								Clear_Buffer();	
+								HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
+								while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+								{
+								}
+								HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+								while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
+								{
+									osDelay(5);
+								}
+								LinkSecondTCPSocket();
+						}
+						if (g_second_cnt >= 20)
 						{
 							Clear_Buffer();	
 							HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
 							HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 							g_time = 0;
-							extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-							while(extstrx == NULL)
+							g_second_cnt =0;
+							while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 							{
 								osDelay(5);
 								g_time++;
-								extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
 								if (g_time >= 2000)
 								{
+									g_time = 0;
 									osTimerStart(RebootEcTimeHandle,10000);
+									printf("LinkSecondTCPSocket osTimerStart\r\n");
+									break;
 								}
 							}
 						}
@@ -693,10 +838,15 @@ void LinkSecondTCPSocket(void)
 		{
 				HAL_NVIC_SystemReset();
 		}
-		printf("LinkSecondTCPSocket is: %s\r\n", extstrx);
+#ifdef PRINTF_ALL_DTU_INFO
+				extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+");
+				printf("LinkSecondTCPSocket is: %s\r\n", extstrx);
+#endif
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 }
+
+
 
 void LinkThirdTCPSocket(void)
 {
@@ -704,58 +854,96 @@ void LinkThirdTCPSocket(void)
 		char str[] = {"AT+QIOPEN=1,2,\042TCP\042,\04239.106.226.214\042,11003,0,1\r\n"};
 		char str1[] = {"AT+QICLOSE=2\r\n"};
 		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
-		osDelay(50);
+		while(usart2_flag == 0)
+		{
+			osDelay(2);
+		}
 		if (usart2_flag)
 		{
 				usart2_flag = 0;
+				HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+#ifdef PRINTF_ALL_DTU_INFO
 				extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-				while(extstrx == NULL)
+				printf("LinkThirdTCPSocket is: %s\r\n", extstrx);
+#endif
+				while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 				{
 					osDelay(5);
 					g_time++;
-					extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-					if (g_time >= 30000)
+					if(g_time%1000 == 0)
+					{
+						g_third_cnt++;
+						Clear_Buffer();	
+						HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
+						while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+						{
+						}
+						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+						while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
+						{
+							osDelay(5);
+						}
+						LinkThirdTCPSocket();
+					}
+					if (g_third_cnt >= 20)
 					{
 						Clear_Buffer();	
 						HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
 						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 						g_time = 0;
-						extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-						while(extstrx == NULL)
+						g_third_cnt = 0;
+						while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 						{
 							osDelay(5);
 							g_time++;
-							extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
 							if (g_time >= 2000)
 							{
+								g_time = 0;
 								osTimerStart(RebootEcTimeHandle,10000);
+								printf("LinkThirdTCPSocket osTimerStart\r\n");
+								break;
 							}
 						}
 					}
 				}
 				HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 				g_time = 0;
-				extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 2,0");
-				while(extstrx == NULL)
+				while(!strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 2,0"))
 				{
 						osDelay(5);
 						g_time++;
-						extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 2,0");
-						if (g_time >= 30000)
+						if(g_time%1000 == 0)
+						{
+								g_third_cnt++;
+								Clear_Buffer();	
+								HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
+								while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+								{
+								}
+								HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+								while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
+								{
+									osDelay(5);
+								}
+								LinkThirdTCPSocket();
+						}
+						if (g_third_cnt >= 20)
 						{
 							Clear_Buffer();	
 							HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
 							HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 							g_time = 0;
-							extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-							while(extstrx == NULL)
+							g_third_cnt =0;
+							while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 							{
 								osDelay(5);
 								g_time++;
-								extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
 								if (g_time >= 2000)
 								{
+									g_time = 0;
 									osTimerStart(RebootEcTimeHandle,10000);
+									printf("LinkThirdTCPSocket osTimerStart\r\n");
+									break;
 								}
 							}
 						}
@@ -765,10 +953,15 @@ void LinkThirdTCPSocket(void)
 		{
 				HAL_NVIC_SystemReset();
 		}
-		printf("LinkThirdTCPSocket is: %s\r\n", extstrx);
+#ifdef PRINTF_ALL_DTU_INFO
+				extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+");
+				printf("LinkThirdTCPSocket is: %s\r\n", extstrx);
+#endif
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 }
+
+
 
 void LinkFourthTCPSocket(void)
 {
@@ -776,58 +969,96 @@ void LinkFourthTCPSocket(void)
 		char str[] = {"AT+QIOPEN=1,3,\042TCP\042,\04239.106.226.214\042,11004,0,1\r\n"};
 		char str1[] = {"AT+QICLOSE=3\r\n"};
 		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
-		osDelay(50);
+		while(usart2_flag == 0)
+		{
+			osDelay(2);
+		}
 		if (usart2_flag)
 		{
 				usart2_flag = 0;
+				HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+#ifdef PRINTF_ALL_DTU_INFO
 				extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-				while(extstrx == NULL)
+				printf("LinkFourthTCPSocket is: %s\r\n", extstrx);
+#endif
+				while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 				{
 					osDelay(5);
 					g_time++;
-					extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-					if (g_time >= 30000)
+					if(g_time%1000 == 0)
+					{
+						g_fourth_cnt++;
+						Clear_Buffer();	
+						HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
+						while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+						{
+						}
+						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+						while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
+						{
+							osDelay(5);
+						}
+						LinkFourthTCPSocket();
+					}
+					if (g_fourth_cnt >= 20)
 					{
 						Clear_Buffer();	
 						HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
 						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 						g_time = 0;
-						extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-						while(extstrx == NULL)
+						g_fourth_cnt = 0;
+						while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 						{
 							osDelay(5);
 							g_time++;
-							extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
 							if (g_time >= 2000)
 							{
+								g_time = 0;
 								osTimerStart(RebootEcTimeHandle,10000);
+								printf("LinkFourthTCPSocket osTimerStart\r\n");
+								break;
 							}
 						}
 					}
 				}
 				HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 				g_time = 0;
-				extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 3,0");
-				while(extstrx == NULL)
+				while(!strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 3,0"))
 				{
 						osDelay(5);
 						g_time++;
-						extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 3,0");
-						if (g_time >= 30000)
+						if(g_time%1000 == 0)
+						{
+								g_fourth_cnt++;
+								Clear_Buffer();	
+								HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
+								while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+								{
+								}
+								HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+								while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
+								{
+									osDelay(5);
+								}
+								LinkFourthTCPSocket();
+						}
+						if (g_fourth_cnt >= 20)
 						{
 							Clear_Buffer();	
 							HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
 							HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 							g_time = 0;
-							extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-							while(extstrx == NULL)
+							g_fourth_cnt =0;
+							while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 							{
 								osDelay(5);
 								g_time++;
-								extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
 								if (g_time >= 2000)
 								{
+									g_time = 0;
 									osTimerStart(RebootEcTimeHandle,10000);
+									printf("LinkFourthTCPSocket osTimerStart\r\n");
+									break;
 								}
 							}
 						}
@@ -837,10 +1068,14 @@ void LinkFourthTCPSocket(void)
 		{
 				HAL_NVIC_SystemReset();
 		}
-		printf("LinkFourthTCPSocket is: %s\r\n", extstrx);
+#ifdef PRINTF_ALL_DTU_INFO
+				extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+");
+				printf("LinkFourthTCPSocket is: %s\r\n", extstrx);
+#endif
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 }
+
 
 void  EC20_Init(void)
 {
@@ -966,127 +1201,120 @@ void EC20Send_MultiStrData(uint8_t channel ,char *bufferdata)
 //    }
 //}
 
-//void StartUdpService(void)
-//{
-//		uint16_t time = 0;
-//		printf("AT+QIOPEN=1,4,\042UDP\042,\04239.106.226.214\042,11005,0,1\r\n");
-//		while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
-//		{
-//			osDelay(5);
-//			time++;
-//			if (time >= 30000)
-//			{
-//				Clear_Buffer();	
-//				printf("AT+QICLOSE=4\r\n");
-//				HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-//				time = 0;
-//				while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
-//				{
-//					osDelay(5);
-//					time++;
-//					if (time >= 2000)
-//					{
-//						osTimerStart(RebootEcTimeHandle,10000);
-//					}
-//				}
-//			}
-//		}
-//		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-//		time = 0;
-//		while(!strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 4,0"))
-//		{
-//				osDelay(5);
-//				time++;
-//				if (time >= 30000)
-//				{
-//					Clear_Buffer();	
-//					printf("AT+QICLOSE=4\r\n");
-//					HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-//					time = 0;
-//					while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
-//					{
-//						 osDelay(5);
-//						 time++;
-//						if (time >= 2000)
-//						{
-//							osTimerStart(RebootEcTimeHandle,10000);
-//						}
-//					}
-//				}
-//		}
-//		Clear_Buffer();	
-//		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-//}
 
 void StartUdpService(void)
 {
 		g_time = 0;
-		char str0[] = {"AT+QIOPEN=1,4,\042UDP SERVICE\042,\042127.0.0.1\042,11005,0,0\r\n"};
+		char str[] = {"AT+QIOPEN=1,4,\042UDP SERVICE\042,\042127.0.0.1\042,11005,3030,1\r\n"};
 		char str1[] = {"AT+QICLOSE=4\r\n"};
-		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str0, strlen(str0));
-		while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
-    {
-    }
-		osDelay(500);
-		Clear_Buffer();	
-		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-		QureyLastErrorCode();
-		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-		while(extstrx == NULL)
+		HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str, strlen(str));
+		while(usart2_flag == 0)
 		{
-			osDelay(5);
-			g_time++;
-			extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-			if (g_time >= 30000)
-			{
-				Clear_Buffer();	
-				HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
-				HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-				g_time = 0;
+			osDelay(2);
+		}
+		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+		if (usart2_flag)
+		{
+				usart2_flag = 0;
+#ifdef PRINTF_ALL_DTU_INFO
 				extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-				while(extstrx == NULL)
+				printf("StartUdpService is: %s\r\n", extstrx);
+#endif
+				while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
 				{
 					osDelay(5);
 					g_time++;
-					extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-					if (g_time >= 2000)
+					if(g_time%1000 == 0)
 					{
-						osTimerStart(RebootEcTimeHandle,10000);
-					}
-				}
-			}
-		}
-		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-		g_time = 0;
-		extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 4,0");
-		while(extstrx == NULL)
-		{
-				osDelay(5);
-				g_time++;
-				extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 4,0");
-				if (g_time >= 30000)
-				{
-					Clear_Buffer();	
-					HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
-					HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
-					g_time = 0;
-					extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-					while(extstrx == NULL)
-					{
-						osDelay(5);
-						g_time++;
-						extstrx = strstr((const char*)usart2_rx_buf,(const char*)"OK");
-						if (g_time >= 2000)
+						g_udp_cnt++;
+						Clear_Buffer();	
+						HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
+						while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
 						{
-							osTimerStart(RebootEcTimeHandle,10000);
+						}
+						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+						while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
+						{
+							osDelay(5);
+						}
+						StartUdpService();
+					}
+					if (g_udp_cnt >= 20)
+					{
+						Clear_Buffer();	
+						HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
+						HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+						g_time = 0;
+						g_udp_cnt = 0;
+						while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
+						{
+							osDelay(5);
+							g_time++;
+							if (g_time >= 2000)
+							{
+								g_time = 0;
+								osTimerStart(RebootEcTimeHandle,10000);
+								printf("StartUdpService osTimerStart\r\n");
+								break;
+							}
 						}
 					}
 				}
+				HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+				g_time = 0;
+				while(!strstr((const char*)usart2_rx_buf,(const char*)"+QIOPEN: 4,0"))
+				{
+						osDelay(5);
+						g_time++;
+						if(g_time%1000 == 0)
+						{
+								g_udp_cnt++;
+								Clear_Buffer();	
+								HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
+								while(__HAL_UART_GET_FLAG(&huart2, USART_FLAG_TC) == RESET)
+								{
+								}
+								HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+								while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
+								{
+									osDelay(5);
+								}
+								StartUdpService();
+						}
+						if (g_udp_cnt >= 20)
+						{
+							Clear_Buffer();	
+							HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&str1, strlen(str1));
+							HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
+							g_time = 0;
+							g_udp_cnt =0;
+							while(!strstr((const char*)usart2_rx_buf,(const char*)"OK"))
+							{
+								osDelay(5);
+								g_time++;
+								if (g_time >= 2000)
+								{
+									g_time = 0;
+									osTimerStart(RebootEcTimeHandle,10000);
+									printf("StartUdpService osTimerStart\r\n");
+									break;
+								}
+							}
+						}
+				}
 		}
-		printf("StartUdpService is: %s\r\n", extstrx);
+		else 
+		{
+				HAL_NVIC_SystemReset();
+		}
+#ifdef PRINTF_ALL_DTU_INFO
+				extstrx = strstr((const char*)usart2_rx_buf,(const char*)"+");
+				printf("StartUdpService is: %s\r\n", extstrx);
+#endif
 		Clear_Buffer();	
 		HAL_UART_Receive_DMA(&huart2, usart2_rx_buf, USART_MAX_DATA_LEN);
 }
+
 
 void SendUdpDate(void)
 {
